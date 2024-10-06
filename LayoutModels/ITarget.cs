@@ -6,8 +6,7 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    internal class Manipulator: ITarget
+    internal interface ITarget
     {
-
     }
 }

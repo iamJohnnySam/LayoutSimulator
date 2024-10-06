@@ -6,8 +6,10 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    internal class Manipulator: ITarget
+    class ErrorResponse : Exception
     {
-
+        public ErrorResponse(string message)
+        {
+        }
     }
 }
