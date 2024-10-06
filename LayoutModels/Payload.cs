@@ -8,18 +8,34 @@ namespace LayoutModels
 {
     internal class Payload
     {
+        public event EventHandler<string>? Log;
+
         public Payload(string payloadID, string payloadType)
         {
             PayloadID = payloadID;
             PayloadType = payloadType;
-            PayloadErrorStaus = false;
-            PayloadState = "unprocessed";
         }
 
         public string PayloadID { get; set; }
         public string PayloadType { get; private set; }
-        public bool PayloadErrorStaus { get; set; }
-        public string PayloadState { get; set; }
+
+        private bool payloadErrorStaus = false;
+        public bool PayloadErrorStaus {
+            get { return payloadErrorStaus; }
+            set {
+                payloadErrorStaus = value;
+                Log?.Invoke(this, $"Payload {PayloadID} error state updated to {value}");
+            }
+        }
+
+        private string payloadState = "unprocessed";
+        public string PayloadState { 
+            get { return payloadState; }
+            set {
+                payloadState = value;
+                Log?.Invoke(this, $"Payload {PayloadID} state updated to {value}");
+            }
+        }
 
     }
 }
