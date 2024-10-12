@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    class ErrorResponse : Exception
+    public enum MapCodes
     {
-        public ErrorResponse(FaultCodes code)
-        {
-        }
+        Empty = 0,
+        Available = 1,
+        Double = 2,
+        Cross = 3,
     }
 }

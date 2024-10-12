@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    class ErrorResponse : Exception
+    internal static class TimeKeeper
     {
-        public ErrorResponse(FaultCodes code)
+        public static void ProcessWait(float SecsTime)
         {
+            Thread.Sleep((int)(SecsTime * 1000));
         }
     }
 }
