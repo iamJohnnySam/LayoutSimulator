@@ -9,6 +9,9 @@ namespace LayoutModels.Support
     public enum FaultCodes
     {
         ProgramError,
+        CommSpecError,
+        NACK_CommandError,
+        NACK_MissingArguments,
         Busy,
         NotDockable,
         PodAlreadyAvailable,

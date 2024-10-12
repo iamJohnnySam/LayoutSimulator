@@ -50,7 +50,7 @@ namespace LayoutModels
             }
         }
 
-        public void pick(string transactionID, int endEffector, Station station, int slot)
+        public void Pick(string transactionID, int endEffector, Station station, int slot)
         {
             if (Busy)
                 throw new ErrorResponse(FaultCodes.Busy);
@@ -63,6 +63,8 @@ namespace LayoutModels
 
             if (EndEffectors[endEffector].ContainsKey("payload"))
                 throw new ErrorResponse(FaultCodes.PayloadAlreadyAvailable);
+
+            // TODO: Payload Mismatch
 
             if (!Locations.Intersect(station.Locations).Any())
                 throw new ErrorResponse(FaultCodes.StationNotReachable);
@@ -88,7 +90,7 @@ namespace LayoutModels
 
         }
 
-        public void place(string transactionID, int endEffector, Station station, int slot)
+        public void Place(string transactionID, int endEffector, Station station, int slot)
         {
             if (Busy)
                 throw new ErrorResponse(FaultCodes.Busy);
@@ -126,7 +128,7 @@ namespace LayoutModels
             Busy = false;
         }
 
-        public void home(string transactionID)
+        public void Home(string transactionID)
         {
             if (Busy)
                 throw new ErrorResponse(FaultCodes.Busy);

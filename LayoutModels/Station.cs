@@ -315,9 +315,18 @@ namespace LayoutModels
                 throw new ErrorResponse(FaultCodes.PodNotAvailable);
 
             Busy = true;
-            StatusDoor = DoorStates.Mapping;
 
-            TimeKeeper.ProcessWait(DoorTransitionTime * 2);
+            if (StatusDoor == DoorStates.Open)
+            {
+                StatusDoor = DoorStates.Mapping;
+                TimeKeeper.ProcessWait(DoorTransitionTime * 2);
+            }
+            else
+            {
+                StatusDoor = DoorStates.Mapping;
+                TimeKeeper.ProcessWait(DoorTransitionTime);
+            }
+
             List<MapCodes> slotMap = GetMap();
 
             StatusDoor = DoorStates.Open;
