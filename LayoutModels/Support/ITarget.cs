@@ -4,12 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LayoutModels
+namespace LayoutModels.Support
 {
-    class ErrorResponse : Exception
+    internal interface ITarget
     {
-        public ErrorResponse(FaultCodes code)
-        {
-        }
     }
 }

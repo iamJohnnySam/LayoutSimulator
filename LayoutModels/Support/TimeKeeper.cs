@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LayoutModels
+namespace LayoutModels.Support
 {
     internal static class TimeKeeper
     {

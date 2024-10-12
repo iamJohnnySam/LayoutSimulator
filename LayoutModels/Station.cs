@@ -4,21 +4,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
+using LayoutModels.Support;
+using static System.Collections.Specialized.BitVector32;
 
 namespace LayoutModels
 {
-    internal class Station : ITarget
+    internal class Station : BaseStation, ITarget
     {
         public event EventHandler<LogMessage>? Log;
 
         public Dictionary<int, Payload> slots = new();
 
-        public string StationID { get; private set; }
         public string PayloadType { get; private set; }
         public string InputState { get; set; }
         public string OutputState { get; set; }
         public int Capacity { get; private set; }
-        public string Location { get; private set; }
         public bool Processable { get; private set; }
         public int ProcessTime { get; set; }
         public bool HasDoor { get; private set; }
@@ -36,7 +36,7 @@ namespace LayoutModels
         private bool statusBeingAccessed = false;
         public bool StatusBeingAccessed {
             get { return statusBeingAccessed; }
-            private set { 
+            set { 
                 statusBeingAccessed = value;
                 Log?.Invoke(this, new LogMessage($"Station {StationID} Being Accessed Status updated to {value}"));
             }
@@ -76,25 +76,14 @@ namespace LayoutModels
             }
         }
 
-
-        private bool busy = false;
-        public bool Busy {
-            get { return busy; }
-            private set
-            {
-                busy = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Busy Status updated to {value}"));
-            }
-        }
-
-        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, string location, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable)
+        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, List<string> locations, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable)
         {
             StationID = stationID;
             PayloadType = payloadType;
             InputState = inputState;
             OutputState = outputState;
             Capacity = capacity;
-            Location = location;
+            Locations = locations;
             Processable = processable;
             ProcessTime = processTime;
             HasDoor = hasDoor;
@@ -106,6 +95,8 @@ namespace LayoutModels
 
             Mappable = podDockable;
             statusMapped = !podDockable;
+
+            Log?.Invoke(this, new LogMessage($"Station {StationID} Created."));
         }
 
         private bool CheckAcessible()
@@ -212,7 +203,6 @@ namespace LayoutModels
             statusPodDocked = true;
             statusMapped = false;
             Log?.Invoke(this, new LogMessage(transactionID, $"Pod {pod.PodID} was docked to Station {StationID}."));
-
         }
 
         public Pod UnDock(string transactionID)
@@ -348,6 +338,9 @@ namespace LayoutModels
             if (slot == 0)
                 slot = GetNextEmptySlot();
 
+            if (slot > Capacity)
+                throw new ErrorResponse(FaultCodes.SlotIndexMissing);
+
             if (!CheckSlotEmpty(slot))
                 throw new ErrorResponse(FaultCodes.PayloadAlreadyAvailable);
 
@@ -368,8 +361,12 @@ namespace LayoutModels
             if (slot == 0)
                 slot = GetNextAvailableSlot();
 
+            if (slot > Capacity)
+                throw new ErrorResponse(FaultCodes.SlotIndexMissing);
+
             if (CheckSlotEmpty(slot))
                 throw new ErrorResponse(FaultCodes.PayloadNotAvailable);
+
 
             if (Busy)
                 throw new ErrorResponse(FaultCodes.Busy);

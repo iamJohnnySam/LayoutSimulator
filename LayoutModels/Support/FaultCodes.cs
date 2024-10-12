@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LayoutModels
+namespace LayoutModels.Support
 {
     public enum FaultCodes
     {
@@ -20,6 +20,12 @@ namespace LayoutModels
         NotAccessible,
         PayloadTypeMismatch,
         NotMappable,
-        StationDoesNotHaveDoor
+        StationDoesNotHaveDoor,
+        PowerOff,
+        PowerOffWhileBusy,
+        EndEffectorMissing,
+        SlotIndexMissing,
+        StationNotReachable,
+        UnknownArmState,
     }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace LayoutModels
+namespace LayoutModels.Support
 {
     public enum MapCodes
     {
@@ -21,5 +21,11 @@ namespace LayoutModels
         Opening,
         Closing,
         Mapping
+    }
+
+    public enum ManipulatorArmStates
+    {
+        extended,
+        retracted
     }
 }
