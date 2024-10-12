@@ -8,6 +8,7 @@ namespace LayoutModels
 {
     public enum FaultCodes
     {
+        ProgramError,
         Busy,
         NotDockable,
         PodAlreadyAvailable,
@@ -18,6 +19,7 @@ namespace LayoutModels
         SlotsNotEmpty,
         NotAccessible,
         PayloadTypeMismatch,
-        NotMappable
+        NotMappable,
+        StationDoesNotHaveDoor
     }
 }

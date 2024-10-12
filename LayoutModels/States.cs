@@ -13,4 +13,13 @@ namespace LayoutModels
         Double = 2,
         Cross = 3,
     }
+
+    public enum DoorStates
+    {
+        Open,
+        Close,
+        Opening,
+        Closing,
+        Mapping
+    }
 }

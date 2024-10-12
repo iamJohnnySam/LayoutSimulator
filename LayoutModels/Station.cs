@@ -3,62 +3,33 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Transactions;
 
 namespace LayoutModels
 {
-    internal class Station(string stationID, string payloadType, string inputState, string outputState, int capacity, string location, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable) : ITarget
+    internal class Station : ITarget
     {
         public event EventHandler<LogMessage>? Log;
 
         public Dictionary<int, Payload> slots = new();
 
-        public string StationID { get; private set; } = stationID;
-        public string PayloadType { get; private set; } = payloadType;
-        public string InputState { get; set; } = inputState;
-        public string OutputState { get; set; } = outputState;
-        public int Capacity { get; private set; } = capacity;
-        public string Location { get; private set; } = location;
-        public bool Processable { get; private set; } = processable;
-        public int ProcessTime { get; set; } = processTime;
-        public bool HasDoor { get; private set; } = hasDoor;
-        public int DoorTransitionTime { get; private set; } = doorTransitionTime;
-        
-        private bool statusDoorOpen = false;
-        public bool StatusDoorOpen {
-            get { return statusDoorOpen; }
+        public string StationID { get; private set; }
+        public string PayloadType { get; private set; }
+        public string InputState { get; set; }
+        public string OutputState { get; set; }
+        public int Capacity { get; private set; }
+        public string Location { get; private set; }
+        public bool Processable { get; private set; }
+        public int ProcessTime { get; set; }
+        public bool HasDoor { get; private set; }
+        public int DoorTransitionTime { get; private set; }
+
+        private DoorStates statusDoor = DoorStates.Close;
+        public DoorStates StatusDoor {
+            get { return statusDoor; }
             private set { 
-                statusDoorOpen = value;
+                statusDoor = value;
                 Log?.Invoke(this, new LogMessage($"Station {StationID} Door Open Status updated to {value})"));
-            }
-        }
-
-        private bool statusDoorClosed = true;
-        public bool StatusDoorClosed {
-            get { return statusDoorClosed; }
-            private set
-            {
-                statusDoorClosed = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Door Closed Status updated to {value}"));
-            }
-        }
-
-        private bool statusDoorOpening = false;
-        public bool StatusDoorOpening {
-            get { return statusDoorOpening; }
-            private set
-            {
-                statusDoorOpening = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Door Opening Status updated to {value}"));
-            }
-        }
-
-        private bool statusDoorClosing = false;
-        public bool StatusDoorClosing {
-            get { return statusDoorClosing; }
-            private set
-            {
-                statusDoorClosing = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Door Closing Status updated to {value}"));
             }
         }
 
@@ -70,7 +41,7 @@ namespace LayoutModels
                 Log?.Invoke(this, new LogMessage($"Station {StationID} Being Accessed Status updated to {value}"));
             }
         }
-        public bool PodDockable { get; private set; } = podDockable;
+        public bool PodDockable { get; private set; }
 
         private bool statusPodDocked = false;
         public bool StatusPodDocked {
@@ -92,9 +63,9 @@ namespace LayoutModels
             }
         }
 
-        public bool Mappable { get; set; } = podDockable;
+        public bool Mappable { get; set; }
 
-        private bool statusMapped = !podDockable;
+        private bool statusMapped = false;
         public bool StatusMapped
         {
             get { return statusMapped; }
@@ -116,10 +87,31 @@ namespace LayoutModels
             }
         }
 
+        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, string location, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable)
+        {
+            StationID = stationID;
+            PayloadType = payloadType;
+            InputState = inputState;
+            OutputState = outputState;
+            Capacity = capacity;
+            Location = location;
+            Processable = processable;
+            ProcessTime = processTime;
+            HasDoor = hasDoor;
+            DoorTransitionTime = doorTransitionTime;
+            if (!hasDoor)
+                statusDoor = DoorStates.Open;
+
+            PodDockable = podDockable;
+
+            Mappable = podDockable;
+            statusMapped = !podDockable;
+        }
+
         private bool CheckAcessible()
         {
             if (StatusBeingAccessed) return false;
-            else if (HasDoor && !StatusDoorOpen) return false;
+            else if (HasDoor && (statusDoor != DoorStates.Open)) return false;
             else return true;
         }
 
@@ -195,6 +187,8 @@ namespace LayoutModels
                 else
                     slotMap.Add(MapCodes.Available);
             }
+
+            Log?.Invoke(this, new LogMessage($"Station {StationID} map was {slotMap.ToString}."));
             return slotMap;
         }
 
@@ -240,19 +234,83 @@ namespace LayoutModels
             return pod;
         }
 
-        public void Door(string transactionID, bool requestedStatus)
+        public DoorStates Door(string transactionID, bool requestedStatus)
         {
-            // 0 -> Open
-            // 1 -> Closed
+            // 0 -> Open Door
+            // 1 -> Close Door
 
             if (Busy)
                 throw new ErrorResponse(FaultCodes.Busy);
+
+            if (!HasDoor)
+                throw new ErrorResponse(FaultCodes.StationDoesNotHaveDoor);
+
+            Busy = true;
+            if (requestedStatus)
+            {
+                switch (StatusDoor)
+                {
+                    case DoorStates.Open:
+                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closing."));
+                        StatusDoor = DoorStates.Closing;
+                        TimeKeeper.ProcessWait(DoorTransitionTime);
+                        StatusDoor = DoorStates.Close;
+                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closed."));
+                        break;
+                    case DoorStates.Close:
+                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door already Closed."));
+                        break;
+                    case DoorStates.Opening:
+                    case DoorStates.Closing:
+                    case DoorStates.Mapping:
+                        throw new ErrorResponse(FaultCodes.ProgramError);
+                }
+            }
+            else
+            {
+                switch (StatusDoor)
+                {
+                    case DoorStates.Open:
+                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door already Open."));
+                        break;
+                    case DoorStates.Close:
+                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Opening."));
+                        StatusDoor = DoorStates.Opening;
+                        TimeKeeper.ProcessWait(DoorTransitionTime);
+                        StatusDoor = DoorStates.Open;
+                        StatusDoor = DoorStates.Close;
+                        break;
+                    case DoorStates.Opening:
+                    case DoorStates.Closing:
+                    case DoorStates.Mapping:
+                        throw new ErrorResponse(FaultCodes.ProgramError);
+                }
+
+            }
+            Busy = false;
+            return StatusDoor;
         }
 
         public void Process(string transactionID)
         {
             if (Busy)
                 throw new ErrorResponse(FaultCodes.Busy);
+            if (CheckAllSlotsEmpty())
+                throw new ErrorResponse(FaultCodes.SlotsEmpty);
+
+            Busy = true;
+            Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Started."));
+            TimeKeeper.ProcessWait(ProcessTime);
+
+            foreach(KeyValuePair<int, Payload> slot in slots)
+            {
+                if (slot.Value.PayloadState != InputState)
+                    Log?.Invoke(this, new LogMessage(transactionID, $"Payload {slot.Value.PayloadID} or Station {StationID} slot {slot.Key} has State {slot.Value.PayloadState} and does not match station Input state, {InputState}. Process continued..."));
+                slot.Value.PayloadState = OutputState;
+            }
+
+            Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Complete."));
+            Busy = false;
         }
 
         public List<MapCodes> Map(string transactionID)
@@ -267,18 +325,19 @@ namespace LayoutModels
                 throw new ErrorResponse(FaultCodes.PodNotAvailable);
 
             Busy = true;
-            StatusDoorOpen = false;
+            StatusDoor = DoorStates.Mapping;
 
             TimeKeeper.ProcessWait(DoorTransitionTime * 2);
             List<MapCodes> slotMap = GetMap();
 
-            StatusDoorOpen = true;
+            StatusDoor = DoorStates.Open;
             Busy = false;
 
+            Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} was mapped."));
             return slotMap;
         }
 
-        public void AcceptPayload(string transactionID, Payload payload, int slot)
+        public string AcceptPayload(string transactionID, Payload payload, int slot)
         {
             if (!CheckAcessible())
                 throw new ErrorResponse(FaultCodes.NotAccessible);
@@ -296,7 +355,9 @@ namespace LayoutModels
                 throw new ErrorResponse(FaultCodes.Busy);
 
             slots.Add(slot, payload);
+
             Log?.Invoke(this, new LogMessage(transactionID, $"Payload {payload.PayloadID} added to slot {slot} on Station {StationID}."));
+            return payload.PayloadID;
         }
 
         public Payload ReleasePayload(string transactionID, int slot)
@@ -315,6 +376,7 @@ namespace LayoutModels
 
             Payload payload = slots[slot];
             slots.Remove(slot);
+
             Log?.Invoke(this, new LogMessage (transactionID, $"Payload {payload.PayloadID} removed from slot {slot} on Station {StationID}."));
             return payload;
         }
