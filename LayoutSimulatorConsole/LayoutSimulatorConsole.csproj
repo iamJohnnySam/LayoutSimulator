@@ -11,4 +11,10 @@
     <ProjectReference Include="..\LayoutModels\LayoutModels.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="simulation1.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
