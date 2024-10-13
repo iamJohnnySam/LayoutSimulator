@@ -7,7 +7,7 @@ using LayoutModels.Support;
 
 namespace LayoutModels
 {
-    internal class Payload
+    public class Payload
     {
         public event EventHandler<LogMessage>? Log;
 

@@ -103,6 +103,7 @@ namespace LayoutModels
         {
             if (StatusBeingAccessed) return false;
             else if (HasDoor && (statusDoor != DoorStates.Open)) return false;
+            else if (Busy) return false;
             else return true;
         }
 
@@ -183,19 +184,24 @@ namespace LayoutModels
             return slotMap;
         }
 
-        public void Dock(string transactionID, Pod pod)
+        public void CheckAvailable()
         {
             if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+                throw new NackResponse(NackCodes.Busy);
+        }
+
+        public void Dock(string transactionID, Pod pod)
+        {
+            CheckAvailable();
 
             if (!PodDockable)
-                throw new ErrorResponse(FaultCodes.NotDockable);
+                throw new NackResponse(NackCodes.NotDockable);
 
             if (statusPodDocked)
-                throw new ErrorResponse(FaultCodes.PodAlreadyAvailable);
+                throw new ErrorResponse(ErrorCodes.PodAlreadyAvailable);
 
             if (!CheckAllSlotsEmpty())
-                throw new ErrorResponse(FaultCodes.SlotsNotEmpty);
+                throw new ErrorResponse(ErrorCodes.SlotsNotEmpty);
 
 
             PodID = pod.PodID;
@@ -207,14 +213,13 @@ namespace LayoutModels
 
         public Pod UnDock(string transactionID)
         {
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+            CheckAvailable();
 
             if (!PodDockable)
-                throw new ErrorResponse(FaultCodes.NotDockable);
+                throw new NackResponse(NackCodes.NotDockable);
 
             if (!statusPodDocked)
-                throw new ErrorResponse(FaultCodes.PodNotAvailable);
+                throw new ErrorResponse(ErrorCodes.PodNotAvailable);
 
             Pod pod = new(PodID, Capacity, PayloadType);
             pod.slots = slots;
@@ -229,11 +234,10 @@ namespace LayoutModels
             // 0 -> Open Door
             // 1 -> Close Door
 
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+            CheckAvailable();
 
             if (!HasDoor)
-                throw new ErrorResponse(FaultCodes.StationDoesNotHaveDoor);
+                throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
 
             Busy = true;
             if (requestedStatus)
@@ -253,7 +257,7 @@ namespace LayoutModels
                     case DoorStates.Opening:
                     case DoorStates.Closing:
                     case DoorStates.Mapping:
-                        throw new ErrorResponse(FaultCodes.ProgramError);
+                        throw new ErrorResponse(ErrorCodes.ProgramError);
                 }
             }
             else
@@ -273,7 +277,7 @@ namespace LayoutModels
                     case DoorStates.Opening:
                     case DoorStates.Closing:
                     case DoorStates.Mapping:
-                        throw new ErrorResponse(FaultCodes.ProgramError);
+                        throw new ErrorResponse(ErrorCodes.ProgramError);
                 }
 
             }
@@ -283,10 +287,10 @@ namespace LayoutModels
 
         public void Process(string transactionID)
         {
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+            CheckAvailable();
+
             if (CheckAllSlotsEmpty())
-                throw new ErrorResponse(FaultCodes.SlotsEmpty);
+                throw new ErrorResponse(ErrorCodes.SlotsEmpty);
 
             Busy = true;
             Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Started."));
@@ -305,14 +309,13 @@ namespace LayoutModels
 
         public List<MapCodes> Map(string transactionID)
         {
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+            CheckAvailable();
 
             if (!Mappable)
-                throw new ErrorResponse(FaultCodes.NotMappable);
+                throw new NackResponse(NackCodes.NotMappable);
 
             if (PodDockable && !statusPodDocked)
-                throw new ErrorResponse(FaultCodes.PodNotAvailable);
+                throw new ErrorResponse(ErrorCodes.PodNotAvailable);
 
             Busy = true;
 
@@ -339,22 +342,19 @@ namespace LayoutModels
         public string AcceptPayload(string transactionID, Payload payload, int slot)
         {
             if (!CheckAcessible())
-                throw new ErrorResponse(FaultCodes.NotAccessible);
+                throw new ErrorResponse(ErrorCodes.NotAccessible);
 
             if (!CheckPayloadCompatible(payload))
-                throw new ErrorResponse(FaultCodes.PayloadTypeMismatch);
+                throw new NackResponse(NackCodes.PayloadTypeMismatch);
 
             if (slot == 0)
                 slot = GetNextEmptySlot();
 
             if (slot > Capacity)
-                throw new ErrorResponse(FaultCodes.SlotIndexMissing);
+                throw new NackResponse(NackCodes.SlotIndexMissing);
 
             if (!CheckSlotEmpty(slot))
-                throw new ErrorResponse(FaultCodes.PayloadAlreadyAvailable);
-
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+                throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable);
 
             slots.Add(slot, payload);
 
@@ -365,20 +365,16 @@ namespace LayoutModels
         public Payload ReleasePayload(string transactionID, int slot)
         {
             if (!CheckAcessible())
-                throw new ErrorResponse(FaultCodes.NotAccessible);
+                throw new ErrorResponse(ErrorCodes.NotAccessible);
 
             if (slot == 0)
                 slot = GetNextAvailableSlot();
 
             if (slot > Capacity)
-                throw new ErrorResponse(FaultCodes.SlotIndexMissing);
+                throw new NackResponse(NackCodes.SlotIndexMissing);
 
             if (CheckSlotEmpty(slot))
-                throw new ErrorResponse(FaultCodes.PayloadNotAvailable);
-
-
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+                throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
 
             Payload payload = slots[slot];
             slots.Remove(slot);

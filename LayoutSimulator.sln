@@ -5,7 +5,9 @@ VisualStudioVersion = 17.10.35013.160
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LayoutModels", "LayoutModels\LayoutModels.csproj", "{5FB7CC4C-1363-4C5E-80EF-83FCF91DFF16}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Communicator", "Communicator\Communicator.csproj", "{B9101279-98E1-433E-AB30-4B07D007CD4E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Communicator", "Communicator\Communicator.csproj", "{B9101279-98E1-433E-AB30-4B07D007CD4E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LayoutSimulatorConsole", "LayoutSimulatorConsole\LayoutSimulatorConsole.csproj", "{CC17E9E7-4FDE-4647-9036-10A1EACC3D96}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{B9101279-98E1-433E-AB30-4B07D007CD4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9101279-98E1-433E-AB30-4B07D007CD4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9101279-98E1-433E-AB30-4B07D007CD4E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CC17E9E7-4FDE-4647-9036-10A1EACC3D96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CC17E9E7-4FDE-4647-9036-10A1EACC3D96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CC17E9E7-4FDE-4647-9036-10A1EACC3D96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CC17E9E7-4FDE-4647-9036-10A1EACC3D96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

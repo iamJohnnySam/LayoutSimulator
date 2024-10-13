@@ -8,7 +8,14 @@ namespace LayoutModels.Support
 {
     class ErrorResponse : Exception
     {
-        public ErrorResponse(FaultCodes code)
+        public ErrorResponse(ErrorCodes code)
+        {
+        }
+    }
+
+    class NackResponse : Exception
+    {
+        public NackResponse(NackCodes code)
         {
         }
     }

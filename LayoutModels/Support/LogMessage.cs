@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.Support
 {
-    internal class LogMessage
+    public class LogMessage
     {
         public string? transactionID;
         public string message;

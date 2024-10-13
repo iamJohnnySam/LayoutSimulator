@@ -50,40 +50,53 @@ namespace LayoutModels
             }
         }
 
+        public void CheckAvailable()
+        {
+            if (!Power)
+                throw new NackResponse(NackCodes.PowerOff);
+
+            if (Busy)
+                throw new NackResponse(NackCodes.Busy);
+        }
+
+        private void Extend()
+        {
+            TimeKeeper.ProcessWait(ExtendTime);
+            ArmState = ManipulatorArmStates.extended;
+        }
+
+        private void Retract()
+        {
+            TimeKeeper.ProcessWait(RetractTime);
+            ArmState = ManipulatorArmStates.retracted;
+        }
+
         public void Pick(string transactionID, int endEffector, Station station, int slot)
         {
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
-
-            if (!Power)
-                throw new ErrorResponse(FaultCodes.PowerOff);
+            CheckAvailable();
 
             if (!EndEffectors.ContainsKey(endEffector))
-                throw new ErrorResponse(FaultCodes.EndEffectorMissing);
+                throw new NackResponse(NackCodes.EndEffectorMissing);
 
             if (EndEffectors[endEffector].ContainsKey("payload"))
-                throw new ErrorResponse(FaultCodes.PayloadAlreadyAvailable);
+                throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable);
 
             // TODO: Payload Mismatch
 
             if (!Locations.Intersect(station.Locations).Any())
-                throw new ErrorResponse(FaultCodes.StationNotReachable);
+                throw new ErrorResponse(ErrorCodes.StationNotReachable);
 
             if (ArmState != ManipulatorArmStates.retracted)
-                throw new ErrorResponse(FaultCodes.UnknownArmState);
+                throw new ErrorResponse(ErrorCodes.UnknownArmState);
 
             Busy = true;
             GoToStation(station.StationID);
 
             station.StatusBeingAccessed = true;
 
-            TimeKeeper.ProcessWait(ExtendTime);
-            ArmState = ManipulatorArmStates.extended;
-
+            Extend();
             EndEffectors[endEffector]["payload"] = station.ReleasePayload(transactionID, slot);
-
-            TimeKeeper.ProcessWait(RetractTime);
-            ArmState = ManipulatorArmStates.retracted;
+            Retract();
 
             station.StatusBeingAccessed = false;
             Busy = false;
@@ -92,37 +105,29 @@ namespace LayoutModels
 
         public void Place(string transactionID, int endEffector, Station station, int slot)
         {
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
-
-            if (!Power)
-                throw new ErrorResponse(FaultCodes.PowerOff);
+            CheckAvailable();
 
             if (!EndEffectors.ContainsKey(endEffector))
-                throw new ErrorResponse(FaultCodes.EndEffectorMissing);
+                throw new NackResponse(NackCodes.EndEffectorMissing);
 
             if (!EndEffectors[endEffector].ContainsKey("payload"))
-                throw new ErrorResponse(FaultCodes.PayloadNotAvailable);
+                throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
 
             if (!Locations.Intersect(station.Locations).Any())
-                throw new ErrorResponse(FaultCodes.StationNotReachable);
+                throw new ErrorResponse(ErrorCodes.StationNotReachable);
 
             if (ArmState != ManipulatorArmStates.retracted)
-                throw new ErrorResponse(FaultCodes.UnknownArmState);
+                throw new ErrorResponse(ErrorCodes.UnknownArmState);
 
             Busy = true;
             GoToStation(station.StationID);
 
             station.StatusBeingAccessed = true;
 
-            TimeKeeper.ProcessWait(ExtendTime);
-            ArmState = ManipulatorArmStates.extended;
-
+            Extend();
             station.AcceptPayload(transactionID, EndEffectors[endEffector]["payload"], slot);
             EndEffectors[endEffector].Remove("payload");
-
-            TimeKeeper.ProcessWait(RetractTime);
-            ArmState = ManipulatorArmStates.retracted;
+            Retract();
 
             station.StatusBeingAccessed = false;
             Busy = false;
@@ -130,17 +135,15 @@ namespace LayoutModels
 
         public void Home(string transactionID)
         {
-            if (Busy)
-                throw new ErrorResponse(FaultCodes.Busy);
+            CheckAvailable();
 
-            if (!Power)
-                throw new ErrorResponse(FaultCodes.PowerOff);
-
-            if (ArmState != ManipulatorArmStates.retracted)
-                throw new ErrorResponse(FaultCodes.UnknownArmState);
+            Busy = true;
 
             Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} Homing"));
-            Busy = true;
+
+            if (ArmState != ManipulatorArmStates.retracted)
+                Retract();
+
             GoToStation("home");
             Busy = false;
             Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} at Home"));
@@ -150,14 +153,14 @@ namespace LayoutModels
         {
             Power = false;
             if (Busy)
-                throw new ErrorResponse(FaultCodes.PowerOffWhileBusy);
+                throw new ErrorResponse(ErrorCodes.PowerOffWhileBusy);
             Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} Off"));
         }
 
         public void PowerOn(string transactionID)
         {
             if (Busy)
-                throw new ErrorResponse(FaultCodes.ProgramError);
+                throw new ErrorResponse(ErrorCodes.ProgramError);
 
             Power = true;
             Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} On"));

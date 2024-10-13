@@ -9,8 +9,10 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    internal class Translator
+    public class Translator
     {
+        public event EventHandler<LogMessage>? Log;
+
         Dictionary<string, List<string>> commands = new();
 
         private string commandDelimiter = ",";
@@ -18,7 +20,7 @@ namespace LayoutModels
         private string? commandEnd = null;
 
         private bool HasTarget = false;
-        private string fixedTarget = " ";
+        private string? fixedTarget = null;
 
         private int transactionIndex = 0;
         private int commandIndex = 1;
@@ -27,33 +29,19 @@ namespace LayoutModels
 
         public ICommSpec CommSpec { get; set; }
 
-        public Translator(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, int indexValueStart, ICommSpec commSpec)
+        public Translator(CommandStructure commStruct, ICommSpec commSpec)
         {
-            HasTarget = true;
+            HasTarget = !commStruct.DedicatedPort;
 
-            commandDelimiter = delimiter;
-            commandStart = startChar;
-            commandEnd = endChar;
+            commandDelimiter = commStruct.Delimiter;
+            commandStart = commStruct.StartCharacter;
+            commandEnd = commStruct.EndCharacter;
 
-            commandIndex = indexTransaction;
-            targetIndex = indexTarget;
-            valueStartIndex = indexValueStart;
-
-            CommSpec = commSpec;
-        }
-
-        public Translator(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexValueStart, string _fixedTarget, ICommSpec commSpec)
-        {
-            HasTarget = false;
-
-            commandDelimiter = delimiter;
-            commandStart = startChar;
-            commandEnd = endChar;
-
-            fixedTarget = _fixedTarget;
-
-            commandIndex = indexTransaction;
-            valueStartIndex = indexValueStart;
+            transactionIndex = commStruct.IndexTransaction;
+            commandIndex = commStruct.IndexCommand;
+            targetIndex = commStruct.IndexTarget;
+            fixedTarget = commStruct.FixedTarget;
+            valueStartIndex = commStruct.IndexValueStart;
 
             CommSpec = commSpec;
         }
@@ -62,21 +50,23 @@ namespace LayoutModels
         {
             int index = args.IndexOf(value);
             if (index == -1)
-                throw new ErrorResponse(FaultCodes.NACK_MissingArguments);
+                throw new NackResponse(NackCodes.MissingArguments);
             return index;
         }
 
-        public List<RunCommand> Translate(string commandString)
+        public List<Job> Translate(string commandString)
         {
             int pFrom = 0;
             if (commandStart != null)
                 pFrom = commandString.IndexOf(commandStart) + commandStart.Length;
 
-            int pTo = 0;
+            int pTo = commandString.Length;
             if (commandEnd != null)
                 pTo = commandString.LastIndexOf(commandEnd);
 
-            List<string> vals = commandString.Substring(pFrom, pTo - pFrom).Split(commandDelimiter).ToList();
+            string recValue = commandString.Substring(pFrom, pTo - pFrom);
+
+            List<string> vals = recValue.Split(commandDelimiter).ToList();
 
             string transactionID = vals[transactionIndex];
             string rawCommand = vals[commandIndex];
@@ -85,21 +75,23 @@ namespace LayoutModels
             if (HasTarget) 
                 target = vals[targetIndex];
 
+            Log?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawCommand} in string {recValue}."));
+
             if (!CommSpec.CommandMap.ContainsKey(rawCommand))
-                throw new ErrorResponse(FaultCodes.NACK_CommandError);
+                throw new NackResponse(NackCodes.CommandError);
 
             if (!CommSpec.CommandArgs.ContainsKey(rawCommand))
-                throw new ErrorResponse(FaultCodes.CommSpecError);
+                throw new NackResponse(NackCodes.CommSpecError);
 
-            if (CommSpec.CommandArgs[rawCommand].Count != (vals.Count + valueStartIndex))
-                throw new ErrorResponse(FaultCodes.NACK_CommandError);
+            if (vals.Count != (CommSpec.CommandArgs[rawCommand].Count + valueStartIndex))
+                throw new NackResponse(NackCodes.CommandError);
 
             List<CommandTypes> commands = CommSpec.CommandMap[rawCommand];
-            List<RunCommand> runCommands = new List<RunCommand>();
+            List<Job> runCommands = new List<Job>();
 
             foreach (CommandTypes command in commands)
             {
-                RunCommand runCommand = new();
+                Job runCommand = new();
                 runCommand.TransactionID = transactionID;
 
                 if (HasTarget)
@@ -112,24 +104,24 @@ namespace LayoutModels
                     case CommandTypes.PICK:
                         runCommand.Action = CommandTypes.PICK;
                         try { runCommand.EndEffector = Int32.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawCommand])]); }
-                        catch (FormatException) { throw new ErrorResponse(FaultCodes.NACK_MissingArguments); }
+                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         runCommand.TargetStation = vals[valueStartIndex + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawCommand])];
 
                         try { runCommand.Slot = Int32.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawCommand])]); }
-                        catch (FormatException) { throw new ErrorResponse(FaultCodes.NACK_MissingArguments); }
+                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         break;
 
                     case CommandTypes.PLACE:
                         runCommand.Action = CommandTypes.PLACE;
                         try { runCommand.EndEffector = Int32.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawCommand])]); }
-                        catch (FormatException) { throw new ErrorResponse(FaultCodes.NACK_MissingArguments); }
+                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         runCommand.TargetStation = vals[valueStartIndex + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawCommand])];
 
                         try { runCommand.Slot = Int32.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawCommand])]); }
-                        catch (FormatException) { throw new ErrorResponse(FaultCodes.NACK_MissingArguments); }
+                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         break;
 
@@ -149,7 +141,7 @@ namespace LayoutModels
                                 runCommand.State = true;
                             }
                         }
-                        catch (FormatException) { throw new ErrorResponse(FaultCodes.NACK_MissingArguments); }
+                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         break;
 
@@ -186,7 +178,7 @@ namespace LayoutModels
                                 runCommand.State = true;
                             }
                         }
-                        catch (FormatException) { throw new ErrorResponse(FaultCodes.NACK_MissingArguments); }
+                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         break;
 

@@ -6,14 +6,9 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.Support
 {
-    public enum FaultCodes
+    public enum ErrorCodes
     {
         ProgramError,
-        CommSpecError,
-        NACK_CommandError,
-        NACK_MissingArguments,
-        Busy,
-        NotDockable,
         PodAlreadyAvailable,
         PodNotAvailable,
         PayloadAlreadyAvailable,
@@ -21,14 +16,22 @@ namespace LayoutModels.Support
         SlotsEmpty,
         SlotsNotEmpty,
         NotAccessible,
+        PowerOffWhileBusy,
+        StationNotReachable,
+        UnknownArmState,
+    }
+    public enum NackCodes
+    {
+        CommSpecError,
+        CommandError,
+        MissingArguments,
+        Busy,
+        NotDockable,
         PayloadTypeMismatch,
         NotMappable,
         StationDoesNotHaveDoor,
         PowerOff,
-        PowerOffWhileBusy,
         EndEffectorMissing,
         SlotIndexMissing,
-        StationNotReachable,
-        UnknownArmState,
     }
 }

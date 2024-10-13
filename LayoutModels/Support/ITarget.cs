@@ -8,5 +8,6 @@ namespace LayoutModels.Support
 {
     internal interface ITarget
     {
+        void CheckAvailable();
     }
 }

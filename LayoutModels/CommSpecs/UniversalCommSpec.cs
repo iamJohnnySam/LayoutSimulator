@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.CommSpecs
 {
-    public class Universal : ICommSpec
+    public class UniversalCommSpec : ICommSpec
     {
         public Dictionary<String, List<CommandTypes>> CommandMap { get; set; } = new();
         public Dictionary<String, List<CommandArgTypes>> CommandArgs { get; set; } = new();
         public Dictionary<ResponseTypes, String> ResponseMap { get; set; } = new();
 
-        public Universal()
+        public UniversalCommSpec()
         {
             CommandMap.Add("GET", new List<CommandTypes> { CommandTypes.PICK });
             CommandMap.Add("PUT", new List<CommandTypes> { CommandTypes.PLACE });

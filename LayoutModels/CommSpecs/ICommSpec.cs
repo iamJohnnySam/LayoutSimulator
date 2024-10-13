@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.CommSpecs
 {
-    internal interface ICommSpec
+    public interface ICommSpec
     {
         Dictionary<String, List<CommandTypes>> CommandMap { get; set; }
         Dictionary<String, List<CommandArgTypes>> CommandArgs { get; set; }
