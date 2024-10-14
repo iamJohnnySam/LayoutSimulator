@@ -35,11 +35,17 @@ namespace LayoutModels
         {
             if (ReadSlot)
             {
-                return TargetStation.slots[SlotID].PayloadID;
+                if (TargetStation.slots.ContainsKey(SlotID))
+                    return TargetStation.slots[SlotID].PayloadID;
+                else
+                    throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
             }
             else
             {
-                return TargetStation.PodID;
+                if (TargetStation.StatusPodDocked)
+                    return TargetStation.PodID;
+                else
+                    throw new ErrorResponse(ErrorCodes.PodNotAvailable);
             }
         }
 

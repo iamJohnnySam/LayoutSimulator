@@ -11,5 +11,6 @@ namespace LayoutModels.CommSpecs
     {
         Dictionary<String, List<CommandTypes>> CommandMap { get; set; }
         Dictionary<String, List<CommandArgTypes>> CommandArgs { get; set; }
+        public Dictionary<ResponseTypes, String> ResponseMap { get; set; }
     }
 }

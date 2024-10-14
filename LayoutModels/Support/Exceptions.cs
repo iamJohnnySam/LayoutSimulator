@@ -8,15 +8,19 @@ namespace LayoutModels.Support
 {
     class ErrorResponse : Exception
     {
-        public ErrorResponse(ErrorCodes code)
+        public ErrorCodes Code { get; private set; }
+        public ErrorResponse(ErrorCodes code) : base($"An error occurred: {code}")
         {
+            Code = code;
         }
     }
 
     class NackResponse : Exception
     {
-        public NackResponse(NackCodes code)
+        public NackCodes Code { get; private set; }
+        public NackResponse(NackCodes code) : base($"An error occurred: {code}")
         {
+            Code = code;
         }
     }
 }

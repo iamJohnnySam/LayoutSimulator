@@ -11,9 +11,10 @@ namespace LayoutModels
 {
     public class Manipulator : BaseStation, ITarget
     {
-        public event EventHandler<LogMessage>? Log;
+        public event EventHandler<LogMessage>? OnLogEvent;
 
         public Dictionary<int, Dictionary<string, Payload>> EndEffectors { get; private set; }
+        public List<string> EndEffectorTypes { get; set; }
         public int MotionTime { get; private set; }
         public int ExtendTime { get; private set; }
         public int RetractTime { get; private set; }
@@ -26,15 +27,16 @@ namespace LayoutModels
             private set
             { 
                 power = value;
-                Log?.Invoke(this, new LogMessage($"Manipulator {StationID} Power status changed to {value}"));
+                OnLogEvent?.Invoke(this, new LogMessage($"Manipulator {StationID} Power status changed to {value}"));
             }
         }
 
 
-        public Manipulator(string manipulatorID, Dictionary<int, Dictionary<string, Payload>> endEffectors, List<string> locations, int motionTime, int extendTime, int retractTime)
+        public Manipulator(string manipulatorID, Dictionary<int, Dictionary<string, Payload>> endEffectors, List<string> endEffectorsTypes, List<string> locations, int motionTime, int extendTime, int retractTime)
         {
             StationID = manipulatorID;
             EndEffectors = endEffectors;
+            EndEffectorTypes = endEffectorsTypes;
             Locations = locations;
             MotionTime = motionTime;
             ExtendTime = extendTime;
@@ -50,13 +52,12 @@ namespace LayoutModels
             }
         }
 
-        public void CheckAvailable()
+        private bool CheckStationAcessible(Station station)
         {
-            if (!Power)
-                throw new NackResponse(NackCodes.PowerOff);
-
-            if (Busy)
-                throw new NackResponse(NackCodes.Busy);
+            if (station.StatusBeingAccessed) return false;
+            else if (station.HasDoor && (station.StatusDoor != DoorStates.Open)) return false;
+            else if (station.Busy) return false;
+            else return true;
         }
 
         private void Extend()
@@ -73,21 +74,29 @@ namespace LayoutModels
 
         public void Pick(string transactionID, int endEffector, Station station, int slot)
         {
-            CheckAvailable();
-
-            if (!EndEffectors.ContainsKey(endEffector))
-                throw new NackResponse(NackCodes.EndEffectorMissing);
-
             if (EndEffectors[endEffector].ContainsKey("payload"))
                 throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable);
-
-            // TODO: Payload Mismatch
 
             if (!Locations.Intersect(station.Locations).Any())
                 throw new ErrorResponse(ErrorCodes.StationNotReachable);
 
+            if (EndEffectorTypes[endEffector] != station.slots[slot].PayloadType)
+                throw new ErrorResponse(ErrorCodes.PayloadTypeMismatch);
+
             if (ArmState != ManipulatorArmStates.retracted)
                 throw new ErrorResponse(ErrorCodes.UnknownArmState);
+
+            if (!CheckStationAcessible(station))
+                throw new ErrorResponse(ErrorCodes.NotAccessible);
+
+            if (slot == 0)
+                slot = station.GetNextAvailableSlot();
+
+            if (slot > station.Capacity)
+                throw new ErrorResponse(ErrorCodes.SlotIndexMissing);
+
+            if (station.CheckSlotEmpty(slot))
+                throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
 
             Busy = true;
             GoToStation(station.StationID);
@@ -105,11 +114,6 @@ namespace LayoutModels
 
         public void Place(string transactionID, int endEffector, Station station, int slot)
         {
-            CheckAvailable();
-
-            if (!EndEffectors.ContainsKey(endEffector))
-                throw new NackResponse(NackCodes.EndEffectorMissing);
-
             if (!EndEffectors[endEffector].ContainsKey("payload"))
                 throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
 
@@ -118,6 +122,21 @@ namespace LayoutModels
 
             if (ArmState != ManipulatorArmStates.retracted)
                 throw new ErrorResponse(ErrorCodes.UnknownArmState);
+
+            if (!CheckStationAcessible(station))
+                throw new ErrorResponse(ErrorCodes.NotAccessible);
+
+            if (!station.CheckPayloadCompatible(EndEffectors[endEffector]["payload"]))
+                throw new ErrorResponse(ErrorCodes.PayloadTypeMismatch);
+
+            if (slot == 0)
+                slot = station.GetNextEmptySlot();
+
+            if (slot > station.Capacity)
+                throw new ErrorResponse(ErrorCodes.SlotIndexMissing);
+
+            if (!station.CheckSlotEmpty(slot))
+                throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable);
 
             Busy = true;
             GoToStation(station.StationID);
@@ -135,18 +154,16 @@ namespace LayoutModels
 
         public void Home(string transactionID)
         {
-            CheckAvailable();
-
             Busy = true;
 
-            Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} Homing"));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} Homing"));
 
             if (ArmState != ManipulatorArmStates.retracted)
                 Retract();
 
             GoToStation("home");
             Busy = false;
-            Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} at Home"));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} at Home"));
         }
 
         public void PowerOff(string transactionID)
@@ -154,7 +171,7 @@ namespace LayoutModels
             Power = false;
             if (Busy)
                 throw new ErrorResponse(ErrorCodes.PowerOffWhileBusy);
-            Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} Off"));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} Off"));
         }
 
         public void PowerOn(string transactionID)
@@ -163,7 +180,7 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.ProgramError);
 
             Power = true;
-            Log?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} On"));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Manipulator {StationID} On"));
         }
 
 

@@ -19,6 +19,8 @@ namespace LayoutModels.Support
         PowerOffWhileBusy,
         StationNotReachable,
         UnknownArmState,
+        PayloadTypeMismatch,
+        SlotIndexMissing,
     }
     public enum NackCodes
     {
@@ -28,11 +30,9 @@ namespace LayoutModels.Support
         MissingArguments,
         Busy,
         NotDockable,
-        PayloadTypeMismatch,
         NotMappable,
         StationDoesNotHaveDoor,
         PowerOff,
         EndEffectorMissing,
-        SlotIndexMissing,
     }
 }

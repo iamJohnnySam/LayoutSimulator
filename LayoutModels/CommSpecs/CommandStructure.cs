@@ -6,16 +6,29 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.CommSpecs
 {
-    public struct CommandStructure (bool dedicatedPort, string? startChar, string? endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, string? fixedTarget, int indexValueStart)
+    public struct CommandStructure (bool dedicatedPort, string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, string fixedTarget, int indexValueStart, bool checkSum)
     {
         public bool DedicatedPort { get; set; } = dedicatedPort;
-        public string? StartCharacter { get; set; } = startChar;
-        public string? EndCharacter { get; set;} = endChar;
+        public string StartCharacter { get; set; } = startChar;
+        public string EndCharacter { get; set;} = endChar;
         public string Delimiter { get; set;} = delimiter;
         public int IndexTransaction { get; set; } = indexTransaction;
         public int IndexCommand { get; set; } = indexCommand;
         public int IndexTarget { get; set; } = indexTarget;
-        public string? FixedTarget { get; set; } = fixedTarget;
+        public string FixedTarget { get; set; } = fixedTarget;
         public int IndexValueStart { get; set;} = indexValueStart;
+        public bool CheckSum { get; set; } = checkSum;
+    }
+
+    public struct ResponseStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexMessage, int indexTarget, int indexResponseStart, bool checkSum)
+    {
+        public string StartCharacter { get; set; } = startChar;
+        public string EndCharacter { get; set; } = endChar;
+        public string Delimiter { get; set; } = delimiter;
+        public int IndexTransaction { get; set; } = indexTransaction;
+        public int IndexMessage { get; set; } = indexMessage;
+        public int IndexTarget { get; set; } = indexTarget;
+        public int IndexResponseStart { get; set; } = indexResponseStart;
+        public bool CheckSum { get; set; } = checkSum;
     }
 }

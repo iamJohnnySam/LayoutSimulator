@@ -44,15 +44,16 @@ namespace Communicator
         private void ListenForClients()
         {
             server = new TcpListener(ipAddress, port);
-            server.Start();
+            try { server.Start(); }
+            catch (System.Net.Sockets.SocketException) { }
 
             while (isRunning)
             {
                 try
                 {
-                    Console.WriteLine("Waiting for a client connection...");
+                    Console.WriteLine($"Waiting for a client connection on port {port}...");
                     client = server.AcceptTcpClient();
-                    Console.WriteLine("Client connected!");
+                    Console.WriteLine($"{port} - Client connected!");
 
                     // Handle client connection
                     stream = client.GetStream();
@@ -67,20 +68,19 @@ namespace Communicator
                             if (bytesRead > 0)
                             {
                                 string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
-                                Console.WriteLine("Received: " + message);
                                 OnMessageReceived?.Invoke(this, message);
                             }
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine("Connection lost: " + ex.Message);
+                            Console.WriteLine($"{port} - Connection lost: " + ex.Message);
                             Reconnect();
                         }
                     }
                 }
                 catch (SocketException ex)
                 {
-                    Console.WriteLine("Socket exception: " + ex.Message);
+                    Console.WriteLine($"{port} - Socket exception: " + ex.Message);
                     Reconnect();
                 }
             }
@@ -100,7 +100,7 @@ namespace Communicator
         private void Reconnect()
         {
             client?.Close();
-            Console.WriteLine("Reconnecting...");
+            Console.WriteLine($"{port} - Reconnecting...");
             ListenForClients();
         }
     }

@@ -4,17 +4,32 @@ using Communicator;
 
 string? command = null;
 
-Simulator simulator = new Simulator(new CommandStructure(false, null, null, ",", 0, 1, 2, null, 3), new UniversalCommSpec(), "simulation1.xml");
-
+Simulator simulator = new Simulator(new CommandStructure(false, string.Empty, string.Empty, ",", 0, 1, 2, string.Empty, 3, false), 
+                                    new ResponseStructure(string.Empty, string.Empty, ",", 0, 1, -1, 2, false), 
+                                    new UniversalCommSpec(), 
+                                    "simulation1.xml");
 
 
 TCPServer server = new TCPServer("127.0.0.1", 8000);
 server.Start();
+
 server.OnMessageReceived += Server_OnMessageReceived;
+simulator.OnLogEvent += Simulator_OnLogEvent;
+simulator.OnResponseEvent += Simulator_OnErrorEvent;
 
 void Server_OnMessageReceived(object? sender, string e)
 {
     simulator.ProcessCommands(e);
+}
+
+void Simulator_OnErrorEvent(object? sender, string e)
+{
+    server.SendMessage(e);
+}
+
+void Simulator_OnLogEvent(object? sender, LayoutModels.Support.LogMessage e)
+{
+    Console.WriteLine($"{DateTime.Now} {e.transactionID}: {e.message}");
 }
 
 

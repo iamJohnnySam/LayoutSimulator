@@ -11,7 +11,7 @@ namespace LayoutModels
 {
     public class Station : BaseStation, ITarget
     {
-        public event EventHandler<LogMessage>? Log;
+        public event EventHandler<LogMessage>? OnLogEvent;
 
         public Dictionary<int, Payload> slots = new();
 
@@ -29,7 +29,7 @@ namespace LayoutModels
             get { return statusDoor; }
             private set { 
                 statusDoor = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Door Status updated to {value}"));
+                OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Door Status updated to {value}"));
             }
         }
 
@@ -38,7 +38,7 @@ namespace LayoutModels
             get { return statusBeingAccessed; }
             set { 
                 statusBeingAccessed = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Being Accessed Status updated to {value}"));
+                OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Being Accessed Status updated to {value}"));
             }
         }
         public bool PodDockable { get; private set; }
@@ -49,7 +49,7 @@ namespace LayoutModels
             private set
             {
                 statusPodDocked = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Pod Docked Status updated to {value}"));
+                OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Pod Docked Status updated to {value}"));
             }
         }
         
@@ -59,7 +59,7 @@ namespace LayoutModels
             private set
             {
                 podID = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Pod ID updated to {value}"));
+                OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Pod ID updated to {value}"));
             }
         }
 
@@ -72,7 +72,7 @@ namespace LayoutModels
             private set
             {
                 statusMapped = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Map Status updated to {value}"));
+                OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Map Status updated to {value}"));
             }
         }
 
@@ -98,25 +98,17 @@ namespace LayoutModels
 
             // TODO: Auto Open if Pod Docked
 
-            Log?.Invoke(this, new LogMessage($"Station {StationID} Created."));
+            OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Created."));
         }
 
-        private bool CheckAcessible()
-        {
-            if (StatusBeingAccessed) return false;
-            else if (HasDoor && (statusDoor != DoorStates.Open)) return false;
-            else if (Busy) return false;
-            else return true;
-        }
-
-        private bool CheckPayloadCompatible(Payload payload)
+        public bool CheckPayloadCompatible(Payload payload)
         {
             if (payload.PayloadType != PayloadType)
                 return false;
             return true;
         }
 
-        private bool CheckSlotEmpty(int slot)
+        public bool CheckSlotEmpty(int slot)
         {
             if (slots.ContainsKey(slot))
                 return false;
@@ -129,27 +121,27 @@ namespace LayoutModels
             return false;
         }
 
-        private int GetNextEmptySlot()
+        public int GetNextEmptySlot()
         {
             for (int i = 0; i < Capacity; i++) {
                 int slot = i + 1;
                 if (slots.ContainsKey(slot))
                 {
-                    Log?.Invoke(this, new LogMessage($"Station {StationID} Next empty slot ({slot}) was updated."));
+                    OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Next empty slot ({slot}) was updated."));
                     return slot;
                 }
             }
             return Capacity;
         }
 
-        private int GetNextAvailableSlot()
+        public int GetNextAvailableSlot()
         {
             for (int i = 0; i < Capacity; i++)
             {
                 int slot = i + 1;
                 if (!slots.ContainsKey(slot))
                 {
-                    Log?.Invoke(this, new LogMessage($"Station {StationID} Next available slot ({slot}) was updated."));
+                    OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Next available slot ({slot}) was updated."));
                     return slot;
                 }
             }
@@ -182,23 +174,12 @@ namespace LayoutModels
                     slotMap.Add(MapCodes.Available);
             }
 
-            Log?.Invoke(this, new LogMessage($"Station {StationID} map was {slotMap.ToString}."));
+            OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} map was {slotMap.ToString}."));
             return slotMap;
-        }
-
-        public void CheckAvailable()
-        {
-            if (Busy)
-                throw new NackResponse(NackCodes.Busy);
         }
 
         public void Dock(string transactionID, Pod pod)
         {
-            CheckAvailable();
-
-            if (!PodDockable)
-                throw new NackResponse(NackCodes.NotDockable);
-
             if (statusPodDocked)
                 throw new ErrorResponse(ErrorCodes.PodAlreadyAvailable);
 
@@ -210,16 +191,11 @@ namespace LayoutModels
             slots = pod.slots;
             statusPodDocked = true;
             statusMapped = false;
-            Log?.Invoke(this, new LogMessage(transactionID, $"Pod {pod.PodID} was docked to Station {StationID}."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Pod {pod.PodID} was docked to Station {StationID}."));
         }
 
         public Pod UnDock(string transactionID)
         {
-            CheckAvailable();
-
-            if (!PodDockable)
-                throw new NackResponse(NackCodes.NotDockable);
-
             if (!statusPodDocked)
                 throw new ErrorResponse(ErrorCodes.PodNotAvailable);
 
@@ -227,7 +203,7 @@ namespace LayoutModels
             pod.slots = slots;
             statusPodDocked = false;
             statusMapped= false;
-            Log?.Invoke(this, new LogMessage(transactionID, $"Pod {pod.PodID} was undocked from Station {StationID}."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Pod {pod.PodID} was undocked from Station {StationID}."));
             return pod;
         }
 
@@ -236,10 +212,8 @@ namespace LayoutModels
             // 0 -> Open Door
             // 1 -> Close Door
 
-            CheckAvailable();
-
-            if (!HasDoor)
-                throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+            if (!statusPodDocked && PodDockable)
+                throw new ErrorResponse(ErrorCodes.PodNotAvailable);
 
             Busy = true;
             if (requestedStatus)
@@ -247,14 +221,14 @@ namespace LayoutModels
                 switch (StatusDoor)
                 {
                     case DoorStates.Open:
-                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closing."));
+                        OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closing."));
                         StatusDoor = DoorStates.Closing;
                         TimeKeeper.ProcessWait(DoorTransitionTime);
                         StatusDoor = DoorStates.Close;
-                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closed."));
+                        OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closed."));
                         break;
                     case DoorStates.Close:
-                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door already Closed."));
+                        OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door already Closed."));
                         break;
                     case DoorStates.Opening:
                     case DoorStates.Closing:
@@ -267,10 +241,10 @@ namespace LayoutModels
                 switch (StatusDoor)
                 {
                     case DoorStates.Open:
-                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door already Open."));
+                        OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door already Open."));
                         break;
                     case DoorStates.Close:
-                        Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Opening."));
+                        OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Opening."));
                         StatusDoor = DoorStates.Opening;
                         TimeKeeper.ProcessWait(DoorTransitionTime);
                         StatusDoor = DoorStates.Open;
@@ -289,33 +263,26 @@ namespace LayoutModels
 
         public void Process(string transactionID)
         {
-            CheckAvailable();
-
             if (CheckAllSlotsEmpty())
                 throw new ErrorResponse(ErrorCodes.SlotsEmpty);
 
             Busy = true;
-            Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Started."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Started."));
             TimeKeeper.ProcessWait(ProcessTime);
 
             foreach(KeyValuePair<int, Payload> slot in slots)
             {
                 if (slot.Value.PayloadState != InputState)
-                    Log?.Invoke(this, new LogMessage(transactionID, $"Payload {slot.Value.PayloadID} or Station {StationID} slot {slot.Key} has State {slot.Value.PayloadState} and does not match station Input state, {InputState}. Process continued..."));
+                    OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Payload {slot.Value.PayloadID} or Station {StationID} slot {slot.Key} has State {slot.Value.PayloadState} and does not match station Input state, {InputState}. Process continued..."));
                 slot.Value.PayloadState = OutputState;
             }
 
-            Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Complete."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Complete."));
             Busy = false;
         }
 
         public List<MapCodes> Map(string transactionID)
         {
-            CheckAvailable();
-
-            if (!Mappable)
-                throw new NackResponse(NackCodes.NotMappable);
-
             if (PodDockable && !statusPodDocked)
                 throw new ErrorResponse(ErrorCodes.PodNotAvailable);
 
@@ -337,51 +304,24 @@ namespace LayoutModels
             StatusDoor = DoorStates.Open;
             Busy = false;
 
-            Log?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} was mapped."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} was mapped."));
             return slotMap;
         }
 
         public string AcceptPayload(string transactionID, Payload payload, int slot)
         {
-            if (!CheckAcessible())
-                throw new ErrorResponse(ErrorCodes.NotAccessible);
-
-            if (!CheckPayloadCompatible(payload))
-                throw new NackResponse(NackCodes.PayloadTypeMismatch);
-
-            if (slot == 0)
-                slot = GetNextEmptySlot();
-
-            if (slot > Capacity)
-                throw new NackResponse(NackCodes.SlotIndexMissing);
-
-            if (!CheckSlotEmpty(slot))
-                throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable);
-
             slots.Add(slot, payload);
 
-            Log?.Invoke(this, new LogMessage(transactionID, $"Payload {payload.PayloadID} added to slot {slot} on Station {StationID}."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Payload {payload.PayloadID} added to slot {slot} on Station {StationID}."));
             return payload.PayloadID;
         }
 
         public Payload ReleasePayload(string transactionID, int slot)
         {
-            if (!CheckAcessible())
-                throw new ErrorResponse(ErrorCodes.NotAccessible);
-
-            if (slot == 0)
-                slot = GetNextAvailableSlot();
-
-            if (slot > Capacity)
-                throw new NackResponse(NackCodes.SlotIndexMissing);
-
-            if (CheckSlotEmpty(slot))
-                throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
-
             Payload payload = slots[slot];
             slots.Remove(slot);
 
-            Log?.Invoke(this, new LogMessage (transactionID, $"Payload {payload.PayloadID} removed from slot {slot} on Station {StationID}."));
+            OnLogEvent?.Invoke(this, new LogMessage (transactionID, $"Payload {payload.PayloadID} removed from slot {slot} on Station {StationID}."));
             return payload;
         }
     }
