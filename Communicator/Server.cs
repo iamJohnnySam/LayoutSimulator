@@ -8,118 +8,100 @@ using System.Threading.Tasks;
 
 namespace Communicator
 {
-    internal class Server
+    public class TCPServer
     {
-        private string _serverIp;
-        private int _serverPort;
-        private Socket _socket;
-        private CancellationTokenSource _cts;
+        public event EventHandler<string>? OnMessageReceived;
 
-        public event Action<string> OnMessageReceived;
-        public event Action OnConnected;
-        public event Action OnDisconnected;
+        private readonly IPAddress ipAddress;
+        private readonly int port;
+        private TcpListener server;
+        private TcpClient client;
+        private NetworkStream stream;
+        private Thread listenerThread;
+        private volatile bool isRunning;
 
-        private bool _isConnected = false;
-        private const int _reconnectDelay = 5000; // 5 seconds
-
-
-        public void SocketClient(string serverIp, int serverPort)
+        public TCPServer(string ipAddress, int port)
         {
-            _serverIp = serverIp;
-            _serverPort = serverPort;
-            _cts = new CancellationTokenSource();
+            this.ipAddress = IPAddress.Parse(ipAddress);
+            this.port = port;
+        }
+        public void Start()
+        {
+            isRunning = true;
+            listenerThread = new Thread(new ThreadStart(ListenForClients));
+            listenerThread.Start();
         }
 
-        public async Task StartAsync()
+        // Stop the server
+        public void Stop()
         {
-            await ConnectAsync();
-            _ = ListenForMessagesAsync();
+            isRunning = false;
+            client?.Close();
+            server?.Stop();
         }
 
-        private async Task ConnectAsync()
+        // Listen for incoming clients
+        private void ListenForClients()
         {
-            while (!_isConnected)
+            server = new TcpListener(ipAddress, port);
+            server.Start();
+
+            while (isRunning)
             {
                 try
                 {
-                    _socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    var ipAddress = IPAddress.Parse(_serverIp);
-                    var remoteEndPoint = new IPEndPoint(ipAddress, _serverPort);
+                    Console.WriteLine("Waiting for a client connection...");
+                    client = server.AcceptTcpClient();
+                    Console.WriteLine("Client connected!");
 
-                    await _socket.ConnectAsync(remoteEndPoint);
-                    _isConnected = true;
+                    // Handle client connection
+                    stream = client.GetStream();
 
-                    OnConnected?.Invoke();
-                    Console.WriteLine("Connected to server.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Connection failed: {ex.Message}. Retrying in {_reconnectDelay / 1000} seconds...");
-                    await Task.Delay(_reconnectDelay);
-                }
-            }
-        }
-
-        private async Task ListenForMessagesAsync()
-        {
-            while (!_cts.Token.IsCancellationRequested)
-            {
-                if (_socket != null && _socket.Connected)
-                {
-                    try
+                    // Start listening for messages from the client
+                    while (isRunning && client.Connected)
                     {
-                        var buffer = new byte[1024];
-                        int bytesRead = await _socket.ReceiveAsync(buffer, SocketFlags.None);
-
-                        if (bytesRead > 0)
+                        try
                         {
-                            var message = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                            OnMessageReceived?.Invoke(message);
+                            byte[] buffer = new byte[1024];
+                            int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                            if (bytesRead > 0)
+                            {
+                                string message = Encoding.ASCII.GetString(buffer, 0, bytesRead);
+                                Console.WriteLine("Received: " + message);
+                                OnMessageReceived?.Invoke(this, message);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Connection lost: " + ex.Message);
+                            Reconnect();
                         }
                     }
-                    catch (SocketException)
-                    {
-                        Console.WriteLine("Connection lost.");
-                        _isConnected = false;
-                        OnDisconnected?.Invoke();
-                        await HandleReconnectionAsync();
-                    }
                 }
-                else
+                catch (SocketException ex)
                 {
-                    await HandleReconnectionAsync();
+                    Console.WriteLine("Socket exception: " + ex.Message);
+                    Reconnect();
                 }
             }
         }
 
-        private async Task HandleReconnectionAsync()
+        // Send message to the connected client
+        public void SendMessage(string message)
         {
-            _socket.Close();
-            _socket.Dispose();
-            _isConnected = false;
+            if (client != null && client.Connected)
+            {
+                byte[] buffer = Encoding.ASCII.GetBytes(message);
+                stream.Write(buffer, 0, buffer.Length);
+            }
+        }
+
+        // Reconnect logic if connection drops
+        private void Reconnect()
+        {
+            client?.Close();
             Console.WriteLine("Reconnecting...");
-            await ConnectAsync();
-        }
-
-        public async Task SendMessageAsync(string message)
-        {
-            if (_isConnected && _socket.Connected)
-            {
-                var messageBytes = Encoding.UTF8.GetBytes(message);
-                await _socket.SendAsync(messageBytes, SocketFlags.None);
-            }
-            else
-            {
-                Console.WriteLine("Cannot send message, not connected.");
-            }
-        }
-
-        public void Stop()
-        {
-            _cts.Cancel();
-            _socket.Close();
-            _socket.Dispose();
-            _isConnected = false;
+            ListenForClients();
         }
     }
 }

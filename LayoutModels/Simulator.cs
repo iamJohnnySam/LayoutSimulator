@@ -24,6 +24,8 @@ namespace LayoutModels
         public Dictionary<string, Reader> Readers { get; set; } = new Dictionary<string, Reader>();
         public SimulatorStates State { get; set; } = SimulatorStates.Uninitialized;
 
+        private const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
         public Simulator(CommandStructure commStruct, ICommSpec commSpec, string xmlPath)
         {
             CommSpec = new Translator(commStruct, commSpec);
@@ -48,13 +50,15 @@ namespace LayoutModels
                 int count = int.Parse(station.Element("Count")?.Value ?? "1");
                 int port = int.Parse(station.Element("ConnectionPort")?.Value ?? "7000");
 
-                for (int i = 1; i < count; i++)
+                for (int i = 0; i < count; i++)
                 {
-                    int j = i;
+                    int j = i+1;
                     string stationName = $"{identifier}{j++}";
                     while (Stations.ContainsKey(stationName))
                         stationName = $"{identifier}{j}";
                     Stations.Add(stationName, new Station(stationName, payloadType, inputState, outputState, capacity, locations, processable, processTime, hasDoor, doorTransitionTime, podDockable));
+                    Stations[stationName].Log += Simulator_Log;
+                    Console.WriteLine(stationName);
                 }
             }
 
@@ -75,14 +79,15 @@ namespace LayoutModels
                 foreach (string payload in endEffectors_types)
                     endEffectors.Add(endEffector++, new Dictionary<string, Payload>());
   
-
-                for (int i = 1; i < count; i++)
+                for (int i = 0; i < count; i++)
                 {
-                    int j = i;
+                    int j = i+1;
                     string manipulatornName = $"{identifier}{j++}";
                     while (Manipulators.ContainsKey(manipulatornName))
                         manipulatornName = $"{identifier}{j}";
                     Manipulators.Add(manipulatornName, new Manipulator(manipulatornName, endEffectors, locations, motionTime, extendTime, retractTime));
+                    Manipulators[manipulatornName].Log += Simulator_Log;
+                    Console.WriteLine(manipulatornName);
                 }
             }
 
@@ -100,12 +105,17 @@ namespace LayoutModels
 
                 while (Stations.ContainsKey(targetStation))
                 {
+                    string readerName = $"{identifier}{j++}";
                     if (type == "PAYLOAD")
-                        Readers.Add($"{identifier}{j++}", new Reader(Stations[targetStation], slot));
+                        Readers.Add(readerName, new Reader(Stations[targetStation], slot));
                     else
-                        Readers.Add($"{identifier}{j++}", new Reader(Stations[targetStation]));
+                        Readers.Add(readerName, new Reader(Stations[targetStation]));
+
+                    j++;
                     targetStation = $"{stationID}{j}";
+                    
                 }
+                // TODO: Implement sockets
             }
 
         }
@@ -117,8 +127,14 @@ namespace LayoutModels
                 List<Job> commands = CommSpec.Translate(command);
                 new Thread(() => ExecuteCommands(commands)).Start();
             }
-            catch (NackResponse) 
-            { 
+            catch (NackResponse e)
+            {
+                Console.WriteLine(e.ToString());
+                // TODO:
+            }
+            catch (IndexOutOfRangeException e) 
+            {
+                Console.WriteLine(e.ToString());
                 // TODO:
             }
         }
@@ -147,6 +163,15 @@ namespace LayoutModels
                 throw new NackResponse(NackCodes.TargetNotExist);
         }
 
+        private string GetID(int length)
+        {
+            StringBuilder val = new StringBuilder(length);
+            Random random = new Random();
+            for (int i = 0; i < length; i++)
+                val.Append(validChars[random.Next(validChars.Length)]);
+            return val.ToString();
+        }
+
         private void ExecuteCommands(List<Job> commands)
         {
             foreach (var command in commands) 
@@ -168,6 +193,14 @@ namespace LayoutModels
                         case CommandTypes.DOOR:
                             CheckStationExist(command.Target);
                             Stations[command.Target].Door(command.TransactionID, command.State);
+                            break;
+                        case CommandTypes.DOOROPEN:
+                            CheckStationExist(command.Target);
+                            Stations[command.Target].Door(command.TransactionID, false);
+                            break;
+                        case CommandTypes.DOORCLOSE:
+                            CheckStationExist(command.Target);
+                            Stations[command.Target].Door(command.TransactionID, true);
                             break;
                         case CommandTypes.MAP:
                             CheckStationExist(command.Target);
@@ -195,23 +228,52 @@ namespace LayoutModels
                             else
                                 Manipulators[command.Target].PowerOff(command.TransactionID);
                             break;
+                        case CommandTypes.POWERON:
+                            Manipulators[command.Target].PowerOn(command.TransactionID);
+                            break;
+                        case CommandTypes.POWEROFF:
+                            Manipulators[command.Target].PowerOff(command.TransactionID);
+                            break;
                         case CommandTypes.HOME:
                             CheckManipulatorExist(command.Target);
                             break;
+                        case CommandTypes.READ:
+                            break;
+                        case CommandTypes.POD:
+                            string podID = GetID(5);
+                            Pods.Add(podID, new Pod(podID, command.Capacity, command.PayloadType));
+                            Console.WriteLine(podID);
+                            // TODO:
+                            break;
+                        case CommandTypes.PAYLOAD:
+                            CheckPodExist(command.PodID);
+                            string payloadID = GetID(5);
+                            Pods[command.PodID].slots[command.Slot] = new Payload(payloadID, Pods[command.PodID].PayloadType);
+                            Console.WriteLine(payloadID);
+                            // TODO:
+                            break;
                     }
                 }
-                catch (NackResponse)
+                catch (NackResponse e)
                 {
+                    Console.WriteLine(e.ToString());
                     // TODO:
                 }
-                catch (ErrorResponse)
+                catch (ErrorResponse e)
                 {
+                    Console.WriteLine(e.ToString());
                     // TODO:
                 }
             }
         }
 
         private void Log(object? sender, Support.LogMessage e)
+        {
+            // TODO: Remove console
+            Console.WriteLine(e.message);
+        }
+
+        private void Simulator_Log(object? sender, LogMessage e)
         {
             // TODO: Remove console
             Console.WriteLine(e.message);

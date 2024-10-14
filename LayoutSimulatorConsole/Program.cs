@@ -1,5 +1,6 @@
 ﻿using LayoutModels.CommSpecs;
 using LayoutModels;
+using Communicator;
 
 string? command = null;
 
@@ -7,10 +8,19 @@ Simulator simulator = new Simulator(new CommandStructure(false, null, null, ",",
 
 
 
-while (command == null)
+TCPServer server = new TCPServer("127.0.0.1", 8000);
+server.Start();
+server.OnMessageReceived += Server_OnMessageReceived;
+
+void Server_OnMessageReceived(object? sender, string e)
 {
-    command = Console.ReadLine();
+    simulator.ProcessCommands(e);
 }
 
 
-Console.ReadLine();
+while (true)
+{
+    command = Console.ReadLine();
+    simulator.ProcessCommands(command);
+}
+

@@ -29,7 +29,7 @@ namespace LayoutModels
             get { return statusDoor; }
             private set { 
                 statusDoor = value;
-                Log?.Invoke(this, new LogMessage($"Station {StationID} Door Open Status updated to {value})"));
+                Log?.Invoke(this, new LogMessage($"Station {StationID} Door Status updated to {value}"));
             }
         }
 

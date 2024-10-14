@@ -27,6 +27,8 @@ namespace LayoutModels
         private int targetIndex = 2;
         private int valueStartIndex = 3;
 
+        private List<CommandTypes> IgnoreTargetCommands = new List<CommandTypes>() { CommandTypes.POD, CommandTypes.PAYLOAD };
+
         public ICommSpec CommSpec { get; set; }
 
         public Translator(CommandStructure commStruct, ICommSpec commSpec)
@@ -70,10 +72,6 @@ namespace LayoutModels
 
             string transactionID = vals[transactionIndex];
             string rawCommand = vals[commandIndex];
-            string target = "";
-
-            if (HasTarget) 
-                target = vals[targetIndex];
 
             Log?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawCommand} in string {recValue}."));
 
@@ -83,26 +81,32 @@ namespace LayoutModels
             if (!CommSpec.CommandArgs.ContainsKey(rawCommand))
                 throw new NackResponse(NackCodes.CommSpecError);
 
-            if (vals.Count != (CommSpec.CommandArgs[rawCommand].Count + valueStartIndex))
-                throw new NackResponse(NackCodes.CommandError);
-
             List<CommandTypes> commands = CommSpec.CommandMap[rawCommand];
             List<Job> runCommands = new List<Job>();
+
+            if (commands.Count != 1 || !IgnoreTargetCommands.Contains(commands[0]))
+                if (vals.Count != (CommSpec.CommandArgs[rawCommand].Count + valueStartIndex))
+                    throw new NackResponse(NackCodes.CommandError);
 
             foreach (CommandTypes command in commands)
             {
                 Job runCommand = new();
                 runCommand.TransactionID = transactionID;
 
-                if (HasTarget)
-                    runCommand.Target = target;
-                else
-                    runCommand.Target = fixedTarget;
+                if (!IgnoreTargetCommands.Contains(command))
+                {
+                    if (HasTarget)
+                        runCommand.Target = vals[targetIndex];
+                    else
+                        runCommand.Target = fixedTarget;
+                }
+                    
+                Log?.Invoke(this, new LogMessage(transactionID, $"Translating command {command.ToString()}."));
+                runCommand.Action = command;
 
                 switch (command)
                 {
                     case CommandTypes.PICK:
-                        runCommand.Action = CommandTypes.PICK;
                         try { runCommand.EndEffector = Int32.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawCommand])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
@@ -114,7 +118,6 @@ namespace LayoutModels
                         break;
 
                     case CommandTypes.PLACE:
-                        runCommand.Action = CommandTypes.PLACE;
                         try { runCommand.EndEffector = Int32.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawCommand])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
@@ -126,9 +129,15 @@ namespace LayoutModels
                         break;
 
                     case CommandTypes.DOOR:
-                        runCommand.Action = CommandTypes.DOOR;
-                        try { runCommand.State = bool.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawCommand])]); }
-                        catch (ErrorResponse)
+                        if (vals[valueStartIndex + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawCommand])] == "0")
+                        {
+                            runCommand.State = false;
+                        }
+                        else if (vals[valueStartIndex + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawCommand])] == "1")
+                        {
+                            runCommand.State = true;
+                        }
+                        else
                         {
                             try
                             {
@@ -141,29 +150,22 @@ namespace LayoutModels
                                 runCommand.State = true;
                             }
                         }
-                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
-
                         break;
 
                     case CommandTypes.MAP:
-                        runCommand.Action = CommandTypes.MAP;
                         break;
 
                     case CommandTypes.DOCK:
-                        runCommand.Action = CommandTypes.DOCK;
                         runCommand.PodID = vals[valueStartIndex + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawCommand])];
                         break;
 
                     case CommandTypes.UNDOCK:
-                        runCommand.Action = CommandTypes.UNDOCK;
                         break;
 
                     case CommandTypes.PROCESS:
-                        runCommand.Action = CommandTypes.PROCESS;
                         break;
 
                     case CommandTypes.POWER:
-                        runCommand.Action = CommandTypes.POWER;
 
                         if (vals[valueStartIndex + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawCommand])] == "0")
                         {
@@ -180,7 +182,7 @@ namespace LayoutModels
                                 GetIndex(CommandArgTypes.PowerOff, CommSpec.CommandArgs[rawCommand]);
                                 runCommand.State = false;
                             }
-                            catch
+                            catch (NackResponse)
                             {
                                 GetIndex(CommandArgTypes.PowerOn, CommSpec.CommandArgs[rawCommand]);
                                 runCommand.State = true;
@@ -189,10 +191,23 @@ namespace LayoutModels
                         break;
 
                     case CommandTypes.HOME:
-                        runCommand.Action = CommandTypes.HOME;
+                        break;
+
+                    case CommandTypes.READ:
+                        break;
+
+                    case CommandTypes.POD:
+                        runCommand.Capacity = int.Parse(vals[valueStartIndex -1 + GetIndex(CommandArgTypes.Capacity, CommSpec.CommandArgs[rawCommand])]);
+                        runCommand.PayloadType = vals[valueStartIndex -1 + GetIndex(CommandArgTypes.Type, CommSpec.CommandArgs[rawCommand])];
+                        break;
+
+                    case CommandTypes.PAYLOAD:
+                        runCommand.PodID = vals[valueStartIndex -1 + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawCommand])];
+                        runCommand.Slot = int.Parse(vals[valueStartIndex -1 + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawCommand])]);
                         break;
 
                 }
+                Log?.Invoke(this, new LogMessage(transactionID, $"Added Command {runCommand.Action.ToString()} to list (Target = {runCommand.Target})."));
                 runCommands.Add(runCommand);
             }
             return runCommands;

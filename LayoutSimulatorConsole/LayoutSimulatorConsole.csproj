@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Communicator\Communicator.csproj" />
     <ProjectReference Include="..\LayoutModels\LayoutModels.csproj" />
   </ItemGroup>
 

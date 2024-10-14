@@ -11,12 +11,20 @@ namespace LayoutModels.Support
         PICK,
         PLACE,
         DOOR,
+        DOOROPEN,
+        DOORCLOSE,
         MAP,
         DOCK,
         UNDOCK,
         PROCESS,
         POWER,
-        HOME
+        POWERON,
+        POWEROFF,
+        HOME,
+        READ,
+
+        POD,
+        PAYLOAD,
     }
 
     public enum CommandArgTypes
@@ -30,7 +38,10 @@ namespace LayoutModels.Support
         DoorClose,
         PowerStatus,
         PowerOn,
-        PowerOff
+        PowerOff,
+
+        Capacity,
+        Type
     }
 
     public enum ResponseTypes
