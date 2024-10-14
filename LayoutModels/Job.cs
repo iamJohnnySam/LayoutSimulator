@@ -12,7 +12,7 @@ namespace LayoutModels
         public string TransactionID { get; set; }
         public CommandTypes Action { get; set; }
         public string Target { get; set; } = "None";
-        public string PodID { get; set; }
+        public string PodID { get; set; } = string.Empty;
         public bool State { get; set; }
         public int EndEffector { get; set; }
         public string TargetStation { get; set; }

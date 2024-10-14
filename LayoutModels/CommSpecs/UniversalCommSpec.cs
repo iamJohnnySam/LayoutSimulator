@@ -22,6 +22,7 @@ namespace LayoutModels.CommSpecs
             CommandMap.Add("LOADMAP", new List<CommandTypes> { CommandTypes.MAP });
             CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.MAP });
             CommandMap.Add("DOCK", new List<CommandTypes> { CommandTypes.DOCK });
+            CommandMap.Add("SDOCK", new List<CommandTypes> { CommandTypes.SDOCK });
             CommandMap.Add("UNDOCK", new List<CommandTypes> { CommandTypes.UNDOCK });
             CommandMap.Add("PROCESS", new List<CommandTypes> { CommandTypes.PROCESS });
             CommandMap.Add("SERVOON", new List<CommandTypes> { CommandTypes.POWERON });
@@ -39,7 +40,8 @@ namespace LayoutModels.CommSpecs
             CommandArgs.Add("UNLOAD", new List<CommandArgTypes> { });
             CommandArgs.Add("LOADMAP", new List<CommandArgTypes> { });
             CommandArgs.Add("REMAP", new List<CommandArgTypes> { });
-            CommandArgs.Add("DOCK", new List<CommandArgTypes> { CommandArgTypes.PodID });
+            CommandArgs.Add("DOCK", new List<CommandArgTypes> { });
+            CommandArgs.Add("SDOCK", new List<CommandArgTypes> { CommandArgTypes.PodID });
             CommandArgs.Add("UNDOCK", new List<CommandArgTypes> { });
             CommandArgs.Add("PROCESS", new List<CommandArgTypes> { });
             CommandArgs.Add("SERVOON", new List<CommandArgTypes> { });

@@ -15,6 +15,7 @@ namespace LayoutModels.Support
         DOORCLOSE,
         MAP,
         DOCK,
+        SDOCK,
         UNDOCK,
         PROCESS,
         POWER,

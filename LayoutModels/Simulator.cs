@@ -180,7 +180,8 @@ namespace LayoutModels
             string response = string.Empty;
 
             foreach (var command in commands) 
-            { 
+            {
+                string _podID = string.Empty;
                 try
                 {
                     switch(command.Action)
@@ -275,8 +276,11 @@ namespace LayoutModels
 
 
                         case CommandTypes.DOCK:
+                            if (command.PodID.Length > 0) _podID = command.PodID;
+                            else _podID = Pods.Keys.Last();
+
                             CheckStationExist(command.Target);
-                            CheckPodExist(command.PodID);
+                            CheckPodExist(_podID);
 
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
@@ -285,7 +289,7 @@ namespace LayoutModels
                             OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
-                            Stations[command.Target].Dock(command.TransactionID, Pods[command.PodID]);
+                            Stations[command.Target].Dock(command.TransactionID, Pods[_podID]);
                             Pods.Remove(command.PodID);
                             break;
 
@@ -380,17 +384,25 @@ namespace LayoutModels
 
 
                         case CommandTypes.PAYLOAD:
-                            string _podID = string.Empty;
                             if (command.PodID.Length > 0) _podID = command.PodID;
                             else _podID = Pods.Keys.Last();
                             CheckPodExist(_podID);
+                            if (command.Slot < 1)
+                                throw new NackResponse(NackCodes.CommandError);
+                            int add_payload_slot = command.Slot;
+                            while (Pods[_podID].slots.ContainsKey(add_payload_slot))
+                            {
+                                add_payload_slot++;
+                                if (add_payload_slot > Pods[_podID].Capacity)
+                                    throw new NackResponse(NackCodes.CommandError);
+                            } 
                             OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             string payloadID = GetID(5);
-                            Pods[_podID].slots[command.Slot] = new Payload(payloadID, Pods[_podID].PayloadType);
+                            Pods[_podID].slots[add_payload_slot] = new Payload(payloadID, Pods[_podID].PayloadType);
                             response = payloadID;
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {_podID} at slot {command.Slot}."));
+                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {_podID} at slot {add_payload_slot}."));
                             break;
                     }
                 }

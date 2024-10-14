@@ -126,17 +126,9 @@ namespace LayoutModels
                         }
                         break;
 
-                    case CommandTypes.MAP:
-                        break;
 
-                    case CommandTypes.DOCK:
+                    case CommandTypes.SDOCK:
                         runCommand.PodID = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawCommand])];
-                        break;
-
-                    case CommandTypes.UNDOCK:
-                        break;
-
-                    case CommandTypes.PROCESS:
                         break;
 
                     case CommandTypes.POWER:
@@ -162,12 +154,6 @@ namespace LayoutModels
                                 runCommand.State = true;
                             }
                         }
-                        break;
-
-                    case CommandTypes.HOME:
-                        break;
-
-                    case CommandTypes.READ:
                         break;
 
                     case CommandTypes.POD:
