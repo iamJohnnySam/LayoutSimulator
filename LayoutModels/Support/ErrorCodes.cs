@@ -24,6 +24,7 @@ namespace LayoutModels.Support
     {
         CommSpecError,
         CommandError,
+        TargetNotExist,
         MissingArguments,
         Busy,
         NotDockable,

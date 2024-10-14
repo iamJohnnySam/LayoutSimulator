@@ -164,8 +164,16 @@ namespace LayoutModels
 
                     case CommandTypes.POWER:
                         runCommand.Action = CommandTypes.POWER;
-                        try { runCommand.State = bool.Parse(vals[valueStartIndex + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawCommand])]); }
-                        catch (ErrorResponse)
+
+                        if (vals[valueStartIndex + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawCommand])] == "0")
+                        {
+                            runCommand.State = false;
+                        }
+                        else if (vals[valueStartIndex + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawCommand])] == "1")
+                        {
+                            runCommand.State = true;
+                        }
+                        else
                         {
                             try
                             {
@@ -178,8 +186,6 @@ namespace LayoutModels
                                 runCommand.State = true;
                             }
                         }
-                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
-
                         break;
 
                     case CommandTypes.HOME:

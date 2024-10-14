@@ -9,7 +9,7 @@ using static System.Collections.Specialized.BitVector32;
 
 namespace LayoutModels
 {
-    internal class Manipulator : BaseStation, ITarget
+    public class Manipulator : BaseStation, ITarget
     {
         public event EventHandler<LogMessage>? Log;
 

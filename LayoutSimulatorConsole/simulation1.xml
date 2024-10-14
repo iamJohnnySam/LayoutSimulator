@@ -2,7 +2,7 @@
 <Simulation>
 	<Stations>
 		<Station>
-			<Identifier>LP</Identifier>
+			<Identifier>L</Identifier>
 			<PayloadType>wafer</PayloadType>
 			<InputState>unprocessed</InputState>
 			<OutputState>processed</OutputState>
@@ -14,9 +14,10 @@
 			<DoorTransitionTime>5</DoorTransitionTime>
 			<PodDockable>1</PodDockable>
 			<Count>3</Count>
+			<ConnectionPort>9000</ConnectionPort>
 		</Station>
 		<Station>
-			<Identifier>PM</Identifier>
+			<Identifier>P</Identifier>
 			<PayloadType>wafer</PayloadType>
 			<InputState>unprocessed</InputState>
 			<OutputState>processed</OutputState>
@@ -28,17 +29,29 @@
 			<DoorTransitionTime>5</DoorTransitionTime>
 			<PodDockable>0</PodDockable>
 			<Count>2</Count>
+			<ConnectionPort>9010</ConnectionPort>
 		</Station>
 	</Stations>
 	<Manipulators>
 		<Manipulator>
 			<Identifier>R</Identifier>
-			<EndEffectors>2</EndEffectors>
+			<EndEffectors>wafer,wafer</EndEffectors>
 			<Locations>location1</Locations>
 			<MotionTime>3</MotionTime>
 			<ExtendTime>3</ExtendTime>
 			<RetractTime>3</RetractTime>
 			<Count>1</Count>
+			<ConnectionPort>9020</ConnectionPort>
 		</Manipulator>
 	</Manipulators>
+	<Readers>
+		<Reader>
+			<Identifier>B</Identifier>
+			<!--Type = PAYLOAD OR POD-->
+			<Type>PAYLOAD</Type>
+			<StationIdentifier>L</StationIdentifier>
+			<Slot>1</Slot>
+			<ConnectionPort>9030</ConnectionPort>
+		</Reader>
+	</Readers>
 </Simulation>

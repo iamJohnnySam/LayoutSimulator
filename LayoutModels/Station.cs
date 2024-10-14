@@ -9,7 +9,7 @@ using static System.Collections.Specialized.BitVector32;
 
 namespace LayoutModels
 {
-    internal class Station : BaseStation, ITarget
+    public class Station : BaseStation, ITarget
     {
         public event EventHandler<LogMessage>? Log;
 
@@ -95,6 +95,8 @@ namespace LayoutModels
 
             Mappable = podDockable;
             statusMapped = !podDockable;
+
+            // TODO: Auto Open if Pod Docked
 
             Log?.Invoke(this, new LogMessage($"Station {StationID} Created."));
         }

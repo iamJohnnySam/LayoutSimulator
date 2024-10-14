@@ -28,4 +28,11 @@ namespace LayoutModels.Support
         extended,
         retracted
     }
+
+    public enum SimulatorStates
+    {
+        Initialized,
+        AutoRun,
+        Uninitialized
+    }
 }

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    internal class Pod(string podID, int capacity, string payloadType)
+    public class Pod(string podID, int capacity, string payloadType)
     {
 
         public Dictionary<int, Payload> slots = new();

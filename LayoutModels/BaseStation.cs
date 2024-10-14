@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    internal class BaseStation
+    public class BaseStation
     {
         public string StationID { get; set; } = "ST";
         public List<string> Locations { get; set; } = new();
