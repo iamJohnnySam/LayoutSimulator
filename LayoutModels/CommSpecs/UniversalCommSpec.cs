@@ -28,7 +28,9 @@ namespace LayoutModels.CommSpecs
             CommandMap.Add("SERVOON", new List<CommandTypes> { CommandTypes.POWERON });
             CommandMap.Add("SERVOOFF", new List<CommandTypes> { CommandTypes.POWEROFF });
             CommandMap.Add("HOME", new List<CommandTypes> { CommandTypes.HOME });
-            CommandMap.Add("READ", new List<CommandTypes> { CommandTypes.READ });
+
+            CommandMap.Add("READRFID", new List<CommandTypes> { CommandTypes.READPOD });
+            CommandMap.Add("OCR", new List<CommandTypes> { CommandTypes.READSLOT });
 
             CommandMap.Add("POD", new List<CommandTypes> { CommandTypes.POD });
             CommandMap.Add("PAYLOAD", new List<CommandTypes> { CommandTypes.PAYLOAD });
@@ -47,7 +49,9 @@ namespace LayoutModels.CommSpecs
             CommandArgs.Add("SERVOON", new List<CommandArgTypes> { });
             CommandArgs.Add("SERVOOFF", new List<CommandArgTypes> { });
             CommandArgs.Add("HOME", new List<CommandArgTypes> { });
-            CommandArgs.Add("READ", new List<CommandArgTypes> { });
+
+            CommandArgs.Add("READRFID", new List<CommandArgTypes> { });
+            CommandArgs.Add("OCR", new List<CommandArgTypes> { });
 
             CommandArgs.Add("POD", new List<CommandArgTypes> { CommandArgTypes.Capacity, CommandArgTypes.Type });
             CommandArgs.Add("PAYLOAD", new List<CommandArgTypes> { CommandArgTypes.PodID, CommandArgTypes.Slot});

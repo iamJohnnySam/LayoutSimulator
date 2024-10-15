@@ -109,9 +109,9 @@ namespace LayoutModels
                 {
                     string readerName = $"{identifier}{j++}";
                     if (type == "PAYLOAD")
-                        Readers.Add(readerName, new Reader(Stations[targetStation], slot));
+                        Readers.Add(readerName, new Reader(readerName, Stations[targetStation], slot));
                     else
-                        Readers.Add(readerName, new Reader(Stations[targetStation]));
+                        Readers.Add(readerName, new Reader(readerName, Stations[targetStation]));
 
                     j++;
                     targetStation = $"{stationID}{j}";
@@ -364,11 +364,13 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.READ:
+                        case CommandTypes.READPOD:
+                        case CommandTypes.READSLOT:
                             CheckReaderExist(command.Target);
                             OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
+                            response = Readers[command.Target].ReadID(command.TransactionID);
                             break;
 
 

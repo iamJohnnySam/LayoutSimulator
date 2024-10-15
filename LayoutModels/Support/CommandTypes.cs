@@ -22,7 +22,8 @@ namespace LayoutModels.Support
         POWERON,
         POWEROFF,
         HOME,
-        READ,
+        READSLOT,
+        READPOD,
 
         POD,
         PAYLOAD,
