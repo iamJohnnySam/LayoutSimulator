@@ -21,6 +21,7 @@ namespace LayoutModels.Support
         UnknownArmState,
         PayloadTypeMismatch,
         SlotIndexMissing,
+        IncorrectState
     }
     public enum NackCodes
     {

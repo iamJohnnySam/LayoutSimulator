@@ -152,7 +152,7 @@ namespace LayoutModels
         {
             List<MapCodes> slotMap = new();
 
-            for (int i = 0; i < slots.Count; i++)
+            for (int i = 0; i < Capacity; i++)
             {
                 int slot = i + 1;
                 if (!slots.ContainsKey(slot))
@@ -174,7 +174,7 @@ namespace LayoutModels
                     slotMap.Add(MapCodes.Available);
             }
 
-            OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} map was {slotMap.ToString}."));
+            OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} map was {slotMap.ToString()}."));
             return slotMap;
         }
 
@@ -248,14 +248,13 @@ namespace LayoutModels
                         StatusDoor = DoorStates.Opening;
                         TimeKeeper.ProcessWait(DoorTransitionTime);
                         StatusDoor = DoorStates.Open;
-                        StatusDoor = DoorStates.Close;
+                        OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Open."));
                         break;
                     case DoorStates.Opening:
                     case DoorStates.Closing:
                     case DoorStates.Mapping:
                         throw new ErrorResponse(ErrorCodes.ProgramError);
                 }
-
             }
             Busy = false;
             return StatusDoor;
@@ -281,23 +280,17 @@ namespace LayoutModels
             Busy = false;
         }
 
-        public List<MapCodes> Map(string transactionID)
+        public List<MapCodes> OpenDoorAndMap(string transactionID)
         {
             if (PodDockable && !statusPodDocked)
                 throw new ErrorResponse(ErrorCodes.PodNotAvailable);
 
-            Busy = true;
+            if (StatusDoor != DoorStates.Close)
+                throw new ErrorResponse(ErrorCodes.IncorrectState);
 
-            if (StatusDoor == DoorStates.Open)
-            {
-                StatusDoor = DoorStates.Mapping;
-                TimeKeeper.ProcessWait(DoorTransitionTime * 2);
-            }
-            else
-            {
-                StatusDoor = DoorStates.Mapping;
-                TimeKeeper.ProcessWait(DoorTransitionTime);
-            }
+            Busy = true;
+            StatusDoor = DoorStates.Mapping;
+            TimeKeeper.ProcessWait(DoorTransitionTime);
 
             List<MapCodes> slotMap = GetMap();
 
@@ -306,6 +299,20 @@ namespace LayoutModels
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} was mapped."));
             return slotMap;
+        }
+
+        public List<MapCodes> ReMap(string transactionID)
+        {
+            if (PodDockable && !statusPodDocked)
+                throw new ErrorResponse(ErrorCodes.PodNotAvailable);
+
+            if (StatusDoor != DoorStates.Open)
+                throw new ErrorResponse(ErrorCodes.IncorrectState);
+
+            Busy = true;
+            Door(transactionID, true);
+            
+            return OpenDoorAndMap(transactionID);
         }
 
         public string AcceptPayload(string transactionID, Payload payload, int slot)

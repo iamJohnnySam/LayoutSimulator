@@ -15,16 +15,17 @@ namespace LayoutModels.CommSpecs
 
         public UniversalCommSpec()
         {
-            CommandMap.Add("GET", new List<CommandTypes> { CommandTypes.PICK });
-            CommandMap.Add("PUT", new List<CommandTypes> { CommandTypes.PLACE });
+            CommandMap.Add("ROBOTPICK", new List<CommandTypes> { CommandTypes.PICK });
+            CommandMap.Add("ROBOTPLACE", new List<CommandTypes> { CommandTypes.PLACE });
             CommandMap.Add("LOAD", new List<CommandTypes> { CommandTypes.DOOROPEN });
             CommandMap.Add("UNLOAD", new List<CommandTypes> { CommandTypes.DOORCLOSE });
-            CommandMap.Add("LOADMAP", new List<CommandTypes> { CommandTypes.MAP });
-            CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.MAP });
+            CommandMap.Add("LOADANDMAP", new List<CommandTypes> { CommandTypes.MAP });
+            CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.REMAP });
             CommandMap.Add("DOCK", new List<CommandTypes> { CommandTypes.DOCK });
             CommandMap.Add("SDOCK", new List<CommandTypes> { CommandTypes.SDOCK });
             CommandMap.Add("UNDOCK", new List<CommandTypes> { CommandTypes.UNDOCK });
-            CommandMap.Add("PROCESS", new List<CommandTypes> { CommandTypes.PROCESS });
+            CommandMap.Add("PROCESS", new List<CommandTypes> { CommandTypes.PROCESS0 });
+            CommandMap.Add("ALIGN", new List<CommandTypes> { CommandTypes.PROCESS1 });
             CommandMap.Add("SERVOON", new List<CommandTypes> { CommandTypes.POWERON });
             CommandMap.Add("SERVOOFF", new List<CommandTypes> { CommandTypes.POWEROFF });
             CommandMap.Add("HOME", new List<CommandTypes> { CommandTypes.HOME });
@@ -36,16 +37,17 @@ namespace LayoutModels.CommSpecs
             CommandMap.Add("PAYLOAD", new List<CommandTypes> { CommandTypes.PAYLOAD });
            
 
-            CommandArgs.Add("GET", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot });
-            CommandArgs.Add("PUT", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot });
+            CommandArgs.Add("ROBOTPICK", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot });
+            CommandArgs.Add("ROBOTPLACE", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot });
             CommandArgs.Add("LOAD", new List<CommandArgTypes> { });
             CommandArgs.Add("UNLOAD", new List<CommandArgTypes> { });
-            CommandArgs.Add("LOADMAP", new List<CommandArgTypes> { });
+            CommandArgs.Add("LOADANDMAP", new List<CommandArgTypes> { });
             CommandArgs.Add("REMAP", new List<CommandArgTypes> { });
             CommandArgs.Add("DOCK", new List<CommandArgTypes> { });
             CommandArgs.Add("SDOCK", new List<CommandArgTypes> { CommandArgTypes.PodID });
             CommandArgs.Add("UNDOCK", new List<CommandArgTypes> { });
             CommandArgs.Add("PROCESS", new List<CommandArgTypes> { });
+            CommandArgs.Add("ALIGN", new List<CommandArgTypes> { CommandArgTypes.Ignore });
             CommandArgs.Add("SERVOON", new List<CommandArgTypes> { });
             CommandArgs.Add("SERVOOFF", new List<CommandArgTypes> { });
             CommandArgs.Add("HOME", new List<CommandArgTypes> { });

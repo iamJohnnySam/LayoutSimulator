@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
@@ -170,6 +171,12 @@ namespace LayoutModels
                 OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{NackCodes.MissingArguments}"));
                 return; 
             }
+            catch(System.ArgumentOutOfRangeException)
+            {
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse("0", "", NackCodes.MissingArguments));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{NackCodes.MissingArguments}"));
+                return;
+            }
             catch (NackResponse e)
             { 
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse("0", "", e.Code));
@@ -271,7 +278,23 @@ namespace LayoutModels
                             OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
-                            Stations[command.Target].Map(command.TransactionID);
+                            List<int> mapData = Stations[command.Target].OpenDoorAndMap(command.TransactionID).Cast<int>().ToList();
+                            response = string.Join("", mapData);
+                            break;
+
+
+                        case CommandTypes.REMAP:
+                            CheckStationExist(command.Target);
+
+                            if (Stations[command.Target].Busy)
+                                throw new NackResponse(NackCodes.Busy);
+                            if (!Stations[command.Target].Mappable)
+                                throw new NackResponse(NackCodes.NotMappable);
+                            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
+
+                            List<int> mapData1 = Stations[command.Target].ReMap(command.TransactionID).Cast<int>().ToList();
+                            response = string.Join("", mapData1);
                             break;
 
 
@@ -308,8 +331,16 @@ namespace LayoutModels
                             Pods.Add(outgoingPod.PodID, outgoingPod);
                             break;
 
-
-                        case CommandTypes.PROCESS:
+                        case CommandTypes.PROCESS0:
+                        case CommandTypes.PROCESS1:
+                        case CommandTypes.PROCESS2:
+                        case CommandTypes.PROCESS3:
+                        case CommandTypes.PROCESS4:
+                        case CommandTypes.PROCESS5:
+                        case CommandTypes.PROCESS6:
+                        case CommandTypes.PROCESS7:
+                        case CommandTypes.PROCESS8:
+                        case CommandTypes.PROCESS9:
                             CheckStationExist(command.Target);
 
                             if (Stations[command.Target].Busy)

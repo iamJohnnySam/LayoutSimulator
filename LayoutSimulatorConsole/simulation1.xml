@@ -2,7 +2,7 @@
 <Simulation>
 	<Stations>
 		<Station>
-			<Identifier>L</Identifier>
+			<Identifier>LP</Identifier>
 			<PayloadType>wafer</PayloadType>
 			<InputState>unprocessed</InputState>
 			<OutputState>processed</OutputState>
@@ -17,7 +17,7 @@
 			<ConnectionPort>9000</ConnectionPort>
 		</Station>
 		<Station>
-			<Identifier>P</Identifier>
+			<Identifier>PM</Identifier>
 			<PayloadType>wafer</PayloadType>
 			<InputState>unprocessed</InputState>
 			<OutputState>processed</OutputState>

@@ -4,8 +4,8 @@ using Communicator;
 
 string? command = null;
 
-Simulator simulator = new Simulator(new CommandStructure(false, string.Empty, string.Empty, ",", 0, 1, 2, string.Empty, 3, false), 
-                                    new ResponseStructure(string.Empty, string.Empty, ",", 0, 1, -1, 2, false), 
+Simulator simulator = new Simulator(new CommandStructure(false, "<", ">", ",:", 0, 1, 2, string.Empty, 3, false), 
+                                    new ResponseStructure("<", ">", ",", 0, 1, -1, 2, false, true), 
                                     new UniversalCommSpec(), 
                                     "simulation1.xml");
 

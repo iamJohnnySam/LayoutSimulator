@@ -42,10 +42,10 @@ namespace LayoutModels
 
             string recValue = commandString.Substring(pFrom, pTo - pFrom);
 
-            List<string> vals = recValue.Split(ComS.Delimiter).ToList();
+            List<string> vals = recValue.Split(ComS.Delimiter.ToCharArray()).ToList();
 
             string transactionID = vals[ComS.IndexTransaction];
-            string rawCommand = vals[ComS.IndexCommand];
+            string rawCommand = vals[ComS.IndexCommand].ToUpper();
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawCommand} in string {recValue}."));
 
@@ -61,6 +61,8 @@ namespace LayoutModels
             if (commands.Count != 1 || !IgnoreTargetCommands.Contains(commands[0]))
                 if (vals.Count != (CommSpec.CommandArgs[rawCommand].Count + ComS.IndexValueStart))
                     throw new NackResponse(NackCodes.CommandError);
+
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Commands identified {commands.Count} command(s)."));
 
             foreach (CommandTypes command in commands)
             {
@@ -202,7 +204,12 @@ namespace LayoutModels
                 checksum = (sum % 256).ToString("X2");
             }
 
-            return $"{RspS.StartCharacter}{responseString}{RspS.EndCharacter}{checksum}";
+            string returnString = $"{RspS.StartCharacter}{responseString}{RspS.EndCharacter}{checksum}";
+
+            if (RspS.CRLF)
+                returnString += "\r\n" ;
+
+            return returnString;
         }
 
         public string TranslateErrorResponse(string transactionID, string target, ErrorCodes code)

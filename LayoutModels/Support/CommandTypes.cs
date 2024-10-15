@@ -14,10 +14,20 @@ namespace LayoutModels.Support
         DOOROPEN,
         DOORCLOSE,
         MAP,
+        REMAP,
         DOCK,
         SDOCK,
         UNDOCK,
-        PROCESS,
+        PROCESS0,
+        PROCESS1,
+        PROCESS2,
+        PROCESS3,
+        PROCESS4,
+        PROCESS5,
+        PROCESS6,
+        PROCESS7,
+        PROCESS8,
+        PROCESS9,
         POWER,
         POWERON,
         POWEROFF,
@@ -43,7 +53,9 @@ namespace LayoutModels.Support
         PowerOff,
 
         Capacity,
-        Type
+        Type,
+
+        Ignore
     }
 
     public enum ResponseTypes
