@@ -80,7 +80,7 @@ namespace LayoutModels
             if (!Locations.Intersect(station.Locations).Any())
                 throw new ErrorResponse(ErrorCodes.StationNotReachable);
 
-            if (EndEffectorTypes[endEffector] != station.slots[slot].PayloadType)
+            if (EndEffectorTypes[endEffector] != station.PayloadType)
                 throw new ErrorResponse(ErrorCodes.PayloadTypeMismatch);
 
             if (ArmState != ManipulatorArmStates.retracted)

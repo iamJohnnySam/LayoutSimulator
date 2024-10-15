@@ -19,6 +19,8 @@ namespace LayoutModels.CommSpecs
             CommandMap.Add("ROBOTPLACE", new List<CommandTypes> { CommandTypes.PLACE });
             CommandMap.Add("LOAD", new List<CommandTypes> { CommandTypes.DOOROPEN });
             CommandMap.Add("UNLOAD", new List<CommandTypes> { CommandTypes.DOORCLOSE });
+            CommandMap.Add("DOOROPEN", new List<CommandTypes> { CommandTypes.DOOROPEN });
+            CommandMap.Add("DOORCLOSE", new List<CommandTypes> { CommandTypes.DOORCLOSE });
             CommandMap.Add("LOADANDMAP", new List<CommandTypes> { CommandTypes.MAP });
             CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.REMAP });
             CommandMap.Add("DOCK", new List<CommandTypes> { CommandTypes.DOCK });
@@ -41,6 +43,8 @@ namespace LayoutModels.CommSpecs
             CommandArgs.Add("ROBOTPLACE", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot });
             CommandArgs.Add("LOAD", new List<CommandArgTypes> { });
             CommandArgs.Add("UNLOAD", new List<CommandArgTypes> { });
+            CommandArgs.Add("DOOROPEN", new List<CommandArgTypes> { });
+            CommandArgs.Add("DOORCLOSE", new List<CommandArgTypes> { });
             CommandArgs.Add("LOADANDMAP", new List<CommandArgTypes> { });
             CommandArgs.Add("REMAP", new List<CommandArgTypes> { });
             CommandArgs.Add("DOCK", new List<CommandArgTypes> { });

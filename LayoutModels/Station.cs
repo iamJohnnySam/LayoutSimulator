@@ -76,7 +76,9 @@ namespace LayoutModels
             }
         }
 
-        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, List<string> locations, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable)
+        public List<string> AcceptedCommands { get; set; }
+
+        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, List<string> locations, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable, List<string> acceptedCommands)
         {
             StationID = stationID;
             PayloadType = payloadType;
@@ -95,6 +97,7 @@ namespace LayoutModels
 
             Mappable = podDockable;
             statusMapped = !podDockable;
+            AcceptedCommands = acceptedCommands;
 
             // TODO: Auto Open if Pod Docked
 

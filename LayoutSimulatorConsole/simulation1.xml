@@ -13,13 +13,14 @@
 			<HasDoor>1</HasDoor>
 			<DoorTransitionTime>5</DoorTransitionTime>
 			<PodDockable>1</PodDockable>
+			<AcceptedCommands>LOAD,UNLOAD,LOADANDMAP,REMAP,DOCK,SDOCK,UNDOCK</AcceptedCommands>
 			<Count>3</Count>
 			<ConnectionPort>9000</ConnectionPort>
 		</Station>
 		<Station>
 			<Identifier>PM</Identifier>
 			<PayloadType>wafer</PayloadType>
-			<InputState>unprocessed</InputState>
+			<InputState>oriented</InputState>
 			<OutputState>processed</OutputState>
 			<Capacity>2</Capacity>
 			<Locations>location1</Locations>
@@ -28,7 +29,24 @@
 			<HasDoor>1</HasDoor>
 			<DoorTransitionTime>5</DoorTransitionTime>
 			<PodDockable>0</PodDockable>
+			<AcceptedCommands>DOOROPEN,DOORCLOSE,PROCESS</AcceptedCommands>
 			<Count>2</Count>
+			<ConnectionPort>9010</ConnectionPort>
+		</Station>
+		<Station>
+			<Identifier>A</Identifier>
+			<PayloadType>wafer</PayloadType>
+			<InputState>unprocessed</InputState>
+			<OutputState>oriented</OutputState>
+			<Capacity>1</Capacity>
+			<Locations>location1</Locations>
+			<Processable>0</Processable>
+			<ProcessTime>6</ProcessTime>
+			<HasDoor>0</HasDoor>
+			<DoorTransitionTime>0</DoorTransitionTime>
+			<PodDockable>0</PodDockable>
+			<AcceptedCommands>ALIGN</AcceptedCommands>
+			<Count>1</Count>
 			<ConnectionPort>9010</ConnectionPort>
 		</Station>
 	</Stations>

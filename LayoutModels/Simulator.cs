@@ -52,6 +52,7 @@ namespace LayoutModels
                 bool hasDoor = station.Element("HasDoor")?.Value == "1";
                 int doorTransitionTime = int.Parse(station.Element("DoorTransitionTime")?.Value ?? "5");
                 bool podDockable = station.Element("PodDockable")?.Value == "1";
+                List<string> acceptedCommands = (station.Element("AcceptedCommands")?.Value ?? "").Split(',').Select(loc => loc.Trim()).ToList();
                 int count = int.Parse(station.Element("Count")?.Value ?? "1");
                 int port = int.Parse(station.Element("ConnectionPort")?.Value ?? "7000");
 
@@ -61,7 +62,7 @@ namespace LayoutModels
                     string stationName = $"{identifier}{j++}";
                     while (Stations.ContainsKey(stationName))
                         stationName = $"{identifier}{j}";
-                    Stations.Add(stationName, new Station(stationName, payloadType, inputState, outputState, capacity, locations, processable, processTime, hasDoor, doorTransitionTime, podDockable));
+                    Stations.Add(stationName, new Station(stationName, payloadType, inputState, outputState, capacity, locations, processable, processTime, hasDoor, doorTransitionTime, podDockable, acceptedCommands));
                     Stations[stationName].OnLogEvent += OnSimulatorLogEvent;
                 }
             }
@@ -230,6 +231,8 @@ namespace LayoutModels
                         case CommandTypes.DOOR:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].HasDoor)
@@ -243,6 +246,8 @@ namespace LayoutModels
                         case CommandTypes.DOOROPEN:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].HasDoor)
@@ -257,6 +262,8 @@ namespace LayoutModels
                         case CommandTypes.DOORCLOSE:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].HasDoor)
@@ -271,6 +278,8 @@ namespace LayoutModels
                         case CommandTypes.MAP:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].Mappable)
@@ -286,6 +295,8 @@ namespace LayoutModels
                         case CommandTypes.REMAP:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].Mappable)
@@ -305,6 +316,8 @@ namespace LayoutModels
                             CheckStationExist(command.Target);
                             CheckPodExist(_podID);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].PodDockable)
@@ -320,6 +333,8 @@ namespace LayoutModels
                         case CommandTypes.UNDOCK:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!Stations[command.Target].PodDockable)
@@ -343,6 +358,8 @@ namespace LayoutModels
                         case CommandTypes.PROCESS9:
                             CheckStationExist(command.Target);
 
+                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                                throw new NackResponse(NackCodes.CommandError);
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));

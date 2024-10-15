@@ -9,6 +9,8 @@ namespace LayoutModels
 {
     public struct Job()
     {
+        public string RawAction { get; set; }
+        public string RawCommand {  get; set; }
         public string TransactionID { get; set; }
         public CommandTypes Action { get; set; }
         public string Target { get; set; } = "None";

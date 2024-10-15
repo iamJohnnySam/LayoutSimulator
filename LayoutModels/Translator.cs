@@ -40,26 +40,26 @@ namespace LayoutModels
             if (ComS.EndCharacter != null)
                 pTo = commandString.LastIndexOf(ComS.EndCharacter);
 
-            string recValue = commandString.Substring(pFrom, pTo - pFrom);
+            string rawCommand = commandString.Substring(pFrom, pTo - pFrom);
 
-            List<string> vals = recValue.Split(ComS.Delimiter.ToCharArray()).ToList();
+            List<string> vals = rawCommand.Split(ComS.Delimiter.ToCharArray()).ToList();
 
             string transactionID = vals[ComS.IndexTransaction];
-            string rawCommand = vals[ComS.IndexCommand].ToUpper();
+            string rawAction = vals[ComS.IndexCommand].ToUpper();
 
-            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawCommand} in string {recValue}."));
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawAction} in string {rawCommand}."));
 
-            if (!CommSpec.CommandMap.ContainsKey(rawCommand))
+            if (!CommSpec.CommandMap.ContainsKey(rawAction))
                 throw new NackResponse(NackCodes.CommandError);
 
-            if (!CommSpec.CommandArgs.ContainsKey(rawCommand))
+            if (!CommSpec.CommandArgs.ContainsKey(rawAction))
                 throw new NackResponse(NackCodes.CommSpecError);
 
-            List<CommandTypes> commands = CommSpec.CommandMap[rawCommand];
+            List<CommandTypes> commands = CommSpec.CommandMap[rawAction];
             List<Job> runCommands = new List<Job>();
 
             if (commands.Count != 1 || !IgnoreTargetCommands.Contains(commands[0]))
-                if (vals.Count != (CommSpec.CommandArgs[rawCommand].Count + ComS.IndexValueStart))
+                if (vals.Count != (CommSpec.CommandArgs[rawAction].Count + ComS.IndexValueStart))
                     throw new NackResponse(NackCodes.CommandError);
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Commands identified {commands.Count} command(s)."));
@@ -68,6 +68,8 @@ namespace LayoutModels
             {
                 Job runCommand = new();
                 runCommand.TransactionID = transactionID;
+                runCommand.RawAction = rawAction;
+                runCommand.RawCommand = rawCommand;
 
                 if (!IgnoreTargetCommands.Contains(command))
                 {
@@ -83,33 +85,33 @@ namespace LayoutModels
                 switch (command)
                 {
                     case CommandTypes.PICK:
-                        try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawCommand])]); }
+                        try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawAction])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
-                        runCommand.TargetStation = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawCommand])];
+                        runCommand.TargetStation = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawAction])];
 
-                        try { runCommand.Slot = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawCommand])]); }
+                        try { runCommand.Slot = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         break;
 
                     case CommandTypes.PLACE:
-                        try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawCommand])]); }
+                        try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawAction])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
-                        runCommand.TargetStation = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawCommand])];
+                        runCommand.TargetStation = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawAction])];
 
-                        try { runCommand.Slot = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawCommand])]); }
+                        try { runCommand.Slot = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
                         break;
 
                     case CommandTypes.DOOR:
-                        if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawCommand])] == "0")
+                        if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawAction])] == "0")
                         {
                             runCommand.State = false;
                         }
-                        else if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawCommand])] == "1")
+                        else if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawAction])] == "1")
                         {
                             runCommand.State = true;
                         }
@@ -117,12 +119,12 @@ namespace LayoutModels
                         {
                             try
                             {
-                                GetIndex(CommandArgTypes.DoorOpen, CommSpec.CommandArgs[rawCommand]);
+                                GetIndex(CommandArgTypes.DoorOpen, CommSpec.CommandArgs[rawAction]);
                                 runCommand.State = false;
                             }
                             catch
                             {
-                                GetIndex(CommandArgTypes.DoorClose, CommSpec.CommandArgs[rawCommand]);
+                                GetIndex(CommandArgTypes.DoorClose, CommSpec.CommandArgs[rawAction]);
                                 runCommand.State = true;
                             }
                         }
@@ -130,16 +132,16 @@ namespace LayoutModels
 
 
                     case CommandTypes.SDOCK:
-                        runCommand.PodID = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawCommand])];
+                        runCommand.PodID = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawAction])];
                         break;
 
                     case CommandTypes.POWER:
 
-                        if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawCommand])] == "0")
+                        if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawAction])] == "0")
                         {
                             runCommand.State = false;
                         }
-                        else if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawCommand])] == "1")
+                        else if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawAction])] == "1")
                         {
                             runCommand.State = true;
                         }
@@ -147,25 +149,25 @@ namespace LayoutModels
                         {
                             try
                             {
-                                GetIndex(CommandArgTypes.PowerOff, CommSpec.CommandArgs[rawCommand]);
+                                GetIndex(CommandArgTypes.PowerOff, CommSpec.CommandArgs[rawAction]);
                                 runCommand.State = false;
                             }
                             catch (NackResponse)
                             {
-                                GetIndex(CommandArgTypes.PowerOn, CommSpec.CommandArgs[rawCommand]);
+                                GetIndex(CommandArgTypes.PowerOn, CommSpec.CommandArgs[rawAction]);
                                 runCommand.State = true;
                             }
                         }
                         break;
 
                     case CommandTypes.POD:
-                        runCommand.Capacity = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Capacity, CommSpec.CommandArgs[rawCommand])]);
-                        runCommand.PayloadType = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Type, CommSpec.CommandArgs[rawCommand])];
+                        runCommand.Capacity = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Capacity, CommSpec.CommandArgs[rawAction])]);
+                        runCommand.PayloadType = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Type, CommSpec.CommandArgs[rawAction])];
                         break;
 
                     case CommandTypes.PAYLOAD:
-                        runCommand.PodID = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawCommand])];
-                        runCommand.Slot = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawCommand])]);
+                        runCommand.PodID = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawAction])];
+                        runCommand.Slot = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]);
                         break;
 
                 }
