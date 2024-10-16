@@ -3,6 +3,7 @@ using LayoutModels.Support;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -10,13 +11,14 @@ using System.Transactions;
 
 namespace LayoutModels
 {
-    public class Translator(CommandStructure commStruct, ResponseStructure respStruct, ICommSpec commSpec)
+    public class Translator(CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec)
     {
         public event EventHandler<LogMessage>? OnLogEvent;
 
         Dictionary<string, List<string>> commands = new();
         public CommandStructure ComS { get; set; } = commStruct;
         public ResponseStructure RspS { get; set; } = respStruct;
+        public ResponseStructure AckS { get; set; } = ackStruct;
         public ICommSpec CommSpec { get; set; } = commSpec;
 
         private List<CommandTypes> IgnoreTargetCommands = [ CommandTypes.POD, CommandTypes.PAYLOAD ];
@@ -45,6 +47,11 @@ namespace LayoutModels
             List<string> vals = rawCommand.Split(ComS.Delimiter.ToCharArray()).ToList();
 
             string transactionID = vals[ComS.IndexTransaction];
+
+            List<string> valsWithoutTxId = new List<string>(vals);
+            valsWithoutTxId.RemoveAt(ComS.IndexTransaction);
+            rawCommand = string.Join(ComS.Delimiter[0], valsWithoutTxId);
+
             string rawAction = vals[ComS.IndexCommand].ToUpper();
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawAction} in string {rawCommand}."));
@@ -179,49 +186,64 @@ namespace LayoutModels
             // TODO: Checksum
         }
 
-        public string TranslateResponse(string transactionID, ResponseTypes RspType, string target, string message)
+        public string TranslateResponse(Job command, ResponseTypes RspType, string message)
         {
-            List<string> response = ["", "", "", ""];
+            ResponseStructure UseS = AckS;
 
-            if (RspS.IndexTransaction >= 0 && RspS.IndexTransaction < response.Count)
-                response[RspS.IndexTransaction] = transactionID;
+            switch (RspType)
+            {
+                case ResponseTypes.ACK:
+                case ResponseTypes.NACK:
+                    UseS = AckS; break;
+                case ResponseTypes.ERROR:
+                case ResponseTypes.SUCCESS:
+                    UseS = RspS; break;
+            }
 
-            if (RspS.IndexMessage >= 0 && RspS.IndexMessage < response.Count)
-                response[RspS.IndexMessage] = CommSpec.ResponseMap[RspType];
+            List<string> response = ["", "", "", "", ""];
 
-            if (RspS.IndexTarget >= 0 && RspS.IndexTarget < response.Count)
-                response[RspS.IndexTarget] = target;
+            if (UseS.IndexTransaction >= 0 && UseS.IndexTransaction < response.Count)
+                response[UseS.IndexTransaction] = command.TransactionID;
 
-            if (RspS.IndexResponseStart >= 0 && RspS.IndexResponseStart < response.Count)
-                response[RspS.IndexResponseStart] = message;
+            if (UseS.IndexMessage >= 0 && UseS.IndexMessage < response.Count)
+                response[UseS.IndexMessage] = CommSpec.ResponseMap[RspType];
+
+            if (UseS.IndexTarget >= 0 && UseS.IndexTarget < response.Count)
+                response[UseS.IndexTarget] = command.Target;
+
+            if (UseS.OriginalCommandIndex >= 0 && UseS.OriginalCommandIndex < response.Count)
+                response[UseS.OriginalCommandIndex] = command.RawCommand;
+
+            if (UseS.IndexResponseStart >= 0 && UseS.IndexResponseStart < response.Count)
+                response[UseS.IndexResponseStart] = message;
 
             int sum = 0;
-            string responseString = string.Join(RspS.Delimiter, response.Where(s => !string.IsNullOrEmpty(s)));
+            string responseString = string.Join(UseS.Delimiter, response.Where(s => !string.IsNullOrEmpty(s)));
 
             string? checksum = null;
-            if (RspS.CheckSum)
+            if (UseS.CheckSum)
             {
                 foreach (char c in responseString)
                     sum += (int)c;
                 checksum = (sum % 256).ToString("X2");
             }
 
-            string returnString = $"{RspS.StartCharacter}{responseString}{RspS.EndCharacter}{checksum}";
+            string returnString = $"{UseS.StartCharacter}{responseString}{UseS.EndCharacter}{checksum}";
 
-            if (RspS.CRLF)
+            if (UseS.CRLF)
                 returnString += "\r\n" ;
 
             return returnString;
         }
 
-        public string TranslateErrorResponse(string transactionID, string target, ErrorCodes code)
+        public string TranslateErrorResponse(Job command, ErrorCodes code)
         {
-            return TranslateResponse(transactionID, ResponseTypes.ERROR, target, code.ToString());
+            return TranslateResponse(command, ResponseTypes.ERROR, code.ToString());
         }
 
-        public string TranslateNackResponse(string transactionID, string target, NackCodes code)
+        public string TranslateNackResponse(Job command, NackCodes code)
         {
-            return TranslateResponse(transactionID, ResponseTypes.NACK, target, code.ToString());
+            return TranslateResponse(command, ResponseTypes.NACK, code.ToString());
         }
 
     }
