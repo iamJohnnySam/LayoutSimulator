@@ -20,7 +20,7 @@ namespace LayoutModels.CommSpecs
         public bool CheckSum { get; set; } = checkSum;
     }
 
-    public struct ResponseStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexMessage, int indexTarget, int originalCommandIndex, int indexResponseStart, bool checkSum, bool cRLF)
+    public struct ResponseStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexMessage, int indexTarget, int originalCommandIndex, int indexResponseStart, bool checkSum, bool cRLF, string injectAckResponse)
     {
         public string StartCharacter { get; set; } = startChar;
         public string EndCharacter { get; set; } = endChar;
@@ -32,5 +32,6 @@ namespace LayoutModels.CommSpecs
         public int IndexResponseStart { get; set; } = indexResponseStart;
         public bool CheckSum { get; set; } = checkSum;
         public bool CRLF { get; set; } = cRLF;
+        public string InjectAckResponse { get; set; } = injectAckResponse;
     }
 }

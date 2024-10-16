@@ -200,6 +200,11 @@ namespace LayoutModels
                     UseS = RspS; break;
             }
 
+            if (RspType == ResponseTypes.ACK)
+            {
+                message = AckS.InjectAckResponse;
+            }
+
             List<string> response = ["", "", "", "", ""];
 
             if (UseS.IndexTransaction >= 0 && UseS.IndexTransaction < response.Count)
