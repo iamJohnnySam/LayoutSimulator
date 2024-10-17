@@ -9,7 +9,8 @@ server.Start();
 
 
 Simulator simulator = new Simulator(new CommandStructure(false, "<", ">", ",:", 0, 1, 2, string.Empty, 3, false), 
-                                    new ResponseStructure("<", ">", ",", 0, 1, -1, 2, false, true), 
+                                    new ResponseStructure("<", ">", ",", 0, 1, -1, 2, 3, false, true, "valcmd"),
+                                    new ResponseStructure("<", ">", ",", 0, 2, -1, 1, 3, false, true, ""), 
                                     new UniversalCommSpec(), 
                                     "simulation1.xml");
 

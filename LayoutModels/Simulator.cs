@@ -31,9 +31,9 @@ namespace LayoutModels
         private const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 
-        public Simulator(CommandStructure commStruct, ResponseStructure respStruct, ICommSpec commSpec, string xmlPath)
+        public Simulator(CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec, string xmlPath)
         {
-            CommSpec = new Translator(commStruct, respStruct, commSpec);
+            CommSpec = new Translator(commStruct, ackStruct, respStruct, commSpec);
             CommSpec.OnLogEvent += OnSupportLogEvent;
 
             XDocument simDoc = XDocument.Load(xmlPath);
@@ -168,19 +168,25 @@ namespace LayoutModels
             try { commands = CommSpec.TranslateCommand(_command); }
             catch (IndexOutOfRangeException) 
             { 
-                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse("0", "", NackCodes.MissingArguments));
+                Job job = new Job();
+                job.RawCommand = _command;
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(job, NackCodes.MissingArguments));
                 OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{NackCodes.MissingArguments}"));
                 return; 
             }
             catch(System.ArgumentOutOfRangeException)
             {
-                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse("0", "", NackCodes.MissingArguments));
+                Job job = new Job();
+                job.RawCommand = _command;
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(job, NackCodes.MissingArguments));
                 OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{NackCodes.MissingArguments}"));
                 return;
             }
             catch (NackResponse e)
-            { 
-                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse("0", "", e.Code));
+            {
+                Job job = new Job();
+                job.RawCommand = _command;
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(job, e.Code));
                 OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{e.Code}"));
                 return; 
             }
