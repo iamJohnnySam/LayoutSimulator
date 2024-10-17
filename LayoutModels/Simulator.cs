@@ -212,7 +212,7 @@ namespace LayoutModels
                             if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
                                 throw new NackResponse(NackCodes.EndEffectorMissing);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Manipulators[command.Target].Pick(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
@@ -230,7 +230,7 @@ namespace LayoutModels
                             if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
                                 throw new NackResponse(NackCodes.EndEffectorMissing);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Manipulators[command.Target].Place(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
@@ -247,7 +247,7 @@ namespace LayoutModels
                             if (!Stations[command.Target].HasDoor)
                                 throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Stations[command.Target].Door(command.TransactionID, command.State);
@@ -263,7 +263,7 @@ namespace LayoutModels
                             if (!Stations[command.Target].HasDoor)
                                 throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Stations[command.Target].Door(command.TransactionID, false);
@@ -280,7 +280,7 @@ namespace LayoutModels
                             if (!Stations[command.Target].HasDoor)
                                 throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Stations[command.Target].Door(command.TransactionID, true);
@@ -297,7 +297,7 @@ namespace LayoutModels
                             if (!Stations[command.Target].Mappable)
                                 throw new NackResponse(NackCodes.NotMappable);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             List<int> mapData = Stations[command.Target].OpenDoorAndMap(command.TransactionID).Cast<int>().ToList();
@@ -319,7 +319,7 @@ namespace LayoutModels
                             if (!Stations[command.Target].PodDockable)
                                 throw new NackResponse(NackCodes.NotDockable);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Stations[command.Target].Dock(command.TransactionID, Pods[_podID]);
@@ -337,7 +337,7 @@ namespace LayoutModels
                             if (!Stations[command.Target].PodDockable)
                                 throw new NackResponse(NackCodes.NotDockable);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Pod outgoingPod = Stations[command.Target].UnDock(command.TransactionID);
@@ -361,7 +361,7 @@ namespace LayoutModels
                             if (Stations[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Stations[command.Target].Process(command.TransactionID);
@@ -371,7 +371,7 @@ namespace LayoutModels
                         case CommandTypes.POWER:
                             CheckManipulatorExist(command.Target);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             if (command.State)
@@ -384,7 +384,7 @@ namespace LayoutModels
                         case CommandTypes.POWERON:
                             CheckManipulatorExist(command.Target);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Manipulators[command.Target].PowerOn(command.TransactionID);
@@ -394,7 +394,7 @@ namespace LayoutModels
                         case CommandTypes.POWEROFF:
                             CheckManipulatorExist(command.Target);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Manipulators[command.Target].PowerOff(command.TransactionID);
@@ -408,7 +408,7 @@ namespace LayoutModels
                             if (Manipulators[command.Target].Busy)
                                 throw new NackResponse(NackCodes.Busy);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             Manipulators[command.Target].Home(command.TransactionID);
@@ -419,7 +419,7 @@ namespace LayoutModels
                         case CommandTypes.READSLOT:
                             CheckReaderExist(command.Target);
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             response = Readers[command.Target].ReadID(command.TransactionID);
@@ -428,7 +428,7 @@ namespace LayoutModels
 
                         case CommandTypes.POD:
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             string podID = GetID(5);
@@ -452,7 +452,7 @@ namespace LayoutModels
                                     throw new NackResponse(NackCodes.CommandError);
                             }
                             if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command.TransactionID, ResponseTypes.ACK, command.Target, ""));
+                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
 
                             string payloadID = GetID(5);
@@ -466,17 +466,17 @@ namespace LayoutModels
             }
             catch (NackResponse e)
             {
-                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(commands.Last().TransactionID, commands.Last().Target, e.Code));
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(commands.Last(), e.Code));
                 OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.NACK},{e.Code}"));
                 return;
             }
             catch (ErrorResponse e)
             {
-                OnResponseEvent?.Invoke(this, CommSpec.TranslateErrorResponse(commands.Last().TransactionID, commands.Last().Target, e.Code));
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateErrorResponse(commands.Last(), e.Code));
                 OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.ERROR},{e.Code}"));
                 return;
             }
-            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(commands.Last().TransactionID, ResponseTypes.SUCCESS, commands.Last().Target, response));
+            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(commands.Last(), ResponseTypes.SUCCESS, response));
             OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.SUCCESS},{response}"));
         }
 
