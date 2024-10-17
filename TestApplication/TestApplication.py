@@ -5,30 +5,29 @@ import threading
 from datetime import datetime
 
 commands = [
-    ("<001,POD,25,wafer>\r\n", True, 2),
+    ("<001,POD,25,payload>\r\n", True, 2),
     ("<002,PAYLOAD,,1>\r\n", True, 2),
     ("<003,PAYLOAD,,5>\r\n", True, 2),
     ("<004,PAYLOAD,,23>\r\n", True, 2),
     ("<005,PAYLOAD,,25>\r\n", True, 2),
-    ("<006,DOCK,LP1>\r\n", True, 2),
-    ("<007:LoadandMap,LP1>\r\n", True, 2),
+    ("<006,DOCK,L1>\r\n", True, 2),
+    ("<007:LoadandMap,L1>\r\n", True, 2),
     ("<008:ServoOn,R1>\r\n", False, 2),
-    ("<009:RobotPick,R1,1,LP1,1>\r\n", True, 2),
+    ("<009:RobotPick,R1,1,L1,1>\r\n", True, 2),
     ("<010:RobotPlace,R1,1,A1,1>\r\n", True, 2),
-    ("<011:Remap,LP1>\r\n", False, 2),
+    ("<011:Remap,L1>\r\n", False, 2),
     ("<012:align,A1,90>\r\n", True, 2),
     ("<013:RobotPick,R1,1,A1,1>\r\n", True, 2),
-    ("<014:dooropen,PM1>\r\n", False, 2),
-    ("<015:RobotPlace,R1,1,PM1,1>\r\n", True, 2),
-    ("<016:doorclose,PM1>\r\n", True, 2),
-    ("<017:RobotPick,R1,1,LP1,1>\r\n", True, 2),
-    ("<018:process,PM1>\r\n", False, 2),
-    ("<019:RobotPick,R1,1,LP1,2>\r\n", True, 2),
-    ("<020:RobotPick,R1,1,LP1,5>\r\n", True, 2),
+    ("<014:dooropen,P1>\r\n", False, 2),
+    ("<015:RobotPlace,R1,1,P1,1>\r\n", True, 2),
+    ("<016:doorclose,P1>\r\n", True, 2),
+    ("<017:RobotPick,R1,1,L1,1>\r\n", True, 2),
+    ("<018:process,P1>\r\n", False, 2),
+    ("<019:RobotPick,R1,1,L1,2>\r\n", True, 2),
+    ("<020:RobotPick,R1,1,L1,5>\r\n", True, 2),
     ("<021:RobotPlace,R1,1,A1,1>\r\n", True, 2),
     ("<022:align,A1,90>\r\n", True, 2),
     ("<023:RobotPick,R1,1,A1,1>\r\n", True, 2),
-    
 ]
 
 connection: socket.socket = None

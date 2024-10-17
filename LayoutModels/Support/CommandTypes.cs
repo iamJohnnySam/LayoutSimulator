@@ -14,7 +14,6 @@ namespace LayoutModels.Support
         DOOROPEN,
         DOORCLOSE,
         MAP,
-        REMAP,
         DOCK,
         SDOCK,
         UNDOCK,

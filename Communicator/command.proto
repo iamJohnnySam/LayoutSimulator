@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+
+service LayoutSimulator {
+  rpc Execute (Command) returns (CommandReply);
+}
+
+
+message Command {
+  string name = 1;
+}
+
+
+message CommandReply {
+  string message = 1;
+}

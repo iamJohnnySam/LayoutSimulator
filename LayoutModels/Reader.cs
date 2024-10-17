@@ -51,7 +51,7 @@ namespace LayoutModels
             }
             else
             {
-                if (TargetStation.StatusPodDocked)
+                if ((TargetStation.State != StationState.UnDocked) && TargetStation.PodDockable)
                 {
                     value = TargetStation.PodID;
                     OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Reader {ReadID} returned Pod ID {value} at {TargetStation.StationID}"));

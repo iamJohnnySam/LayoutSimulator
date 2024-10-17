@@ -4,14 +4,15 @@ using Communicator;
 
 string? command = null;
 
+TCPServer server = new TCPServer("127.0.0.1", 8000);
+server.Start();
+
+
 Simulator simulator = new Simulator(new CommandStructure(false, "<", ">", ",:", 0, 1, 2, string.Empty, 3, false), 
                                     new ResponseStructure("<", ">", ",", 0, 1, -1, 2, false, true), 
                                     new UniversalCommSpec(), 
                                     "simulation1.xml");
 
-
-TCPServer server = new TCPServer("127.0.0.1", 8000);
-server.Start();
 
 server.OnMessageReceived += Server_OnMessageReceived;
 simulator.OnLogEvent += Simulator_OnLogEvent;

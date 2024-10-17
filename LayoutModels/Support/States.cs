@@ -14,15 +14,6 @@ namespace LayoutModels.Support
         Cross = 3,
     }
 
-    public enum DoorStates
-    {
-        Open,
-        Close,
-        Opening,
-        Closing,
-        Mapping
-    }
-
     public enum ManipulatorArmStates
     {
         extended,

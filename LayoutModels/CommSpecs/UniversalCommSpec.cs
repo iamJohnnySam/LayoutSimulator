@@ -22,7 +22,7 @@ namespace LayoutModels.CommSpecs
             CommandMap.Add("DOOROPEN", new List<CommandTypes> { CommandTypes.DOOROPEN });
             CommandMap.Add("DOORCLOSE", new List<CommandTypes> { CommandTypes.DOORCLOSE });
             CommandMap.Add("LOADANDMAP", new List<CommandTypes> { CommandTypes.MAP });
-            CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.REMAP });
+            CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.DOORCLOSE, CommandTypes.MAP });
             CommandMap.Add("DOCK", new List<CommandTypes> { CommandTypes.DOCK });
             CommandMap.Add("SDOCK", new List<CommandTypes> { CommandTypes.SDOCK });
             CommandMap.Add("UNDOCK", new List<CommandTypes> { CommandTypes.UNDOCK });

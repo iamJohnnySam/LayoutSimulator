@@ -21,6 +21,8 @@ namespace LayoutModels
         public ManipulatorArmStates ArmState { get; private set; } = ManipulatorArmStates.retracted;
         public string CurrentLocation { get; private set; } = "home";
 
+        // Todo: convert to state models
+
         private bool power = false;
         public bool Power { 
             get { return power; }
@@ -52,14 +54,6 @@ namespace LayoutModels
             }
         }
 
-        private bool CheckStationAcessible(Station station)
-        {
-            if (station.StatusBeingAccessed) return false;
-            else if (station.HasDoor && (station.StatusDoor != DoorStates.Open)) return false;
-            else if (station.Busy) return false;
-            else return true;
-        }
-
         private void Extend()
         {
             TimeKeeper.ProcessWait(ExtendTime);
@@ -86,9 +80,6 @@ namespace LayoutModels
             if (ArmState != ManipulatorArmStates.retracted)
                 throw new ErrorResponse(ErrorCodes.UnknownArmState);
 
-            if (!CheckStationAcessible(station))
-                throw new ErrorResponse(ErrorCodes.NotAccessible);
-
             if (slot == 0)
                 slot = station.GetNextAvailableSlot();
 
@@ -101,13 +92,13 @@ namespace LayoutModels
             Busy = true;
             GoToStation(station.StationID);
 
-            station.StatusBeingAccessed = true;
+            station.StartStationAccess();
 
             Extend();
             EndEffectors[endEffector]["payload"] = station.ReleasePayload(transactionID, slot);
             Retract();
 
-            station.StatusBeingAccessed = false;
+            station.StopStationAccess();
             Busy = false;
 
         }
@@ -122,9 +113,6 @@ namespace LayoutModels
 
             if (ArmState != ManipulatorArmStates.retracted)
                 throw new ErrorResponse(ErrorCodes.UnknownArmState);
-
-            if (!CheckStationAcessible(station))
-                throw new ErrorResponse(ErrorCodes.NotAccessible);
 
             if (!station.CheckPayloadCompatible(EndEffectors[endEffector]["payload"]))
                 throw new ErrorResponse(ErrorCodes.PayloadTypeMismatch);
@@ -141,14 +129,14 @@ namespace LayoutModels
             Busy = true;
             GoToStation(station.StationID);
 
-            station.StatusBeingAccessed = true;
+            station.StartStationAccess();
 
             Extend();
             station.AcceptPayload(transactionID, EndEffectors[endEffector]["payload"], slot);
             EndEffectors[endEffector].Remove("payload");
             Retract();
 
-            station.StatusBeingAccessed = false;
+            station.StopStationAccess();
             Busy = false;
         }
 
