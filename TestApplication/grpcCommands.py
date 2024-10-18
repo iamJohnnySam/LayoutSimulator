@@ -2,36 +2,33 @@ import grpc
 import command_pb2
 import command_pb2_grpc
 import asyncio
-
-commands = [
-    ("<007:LoadandMap,L1>\r\n", True, 2),
-    ("<008:ServoOn,R1>\r\n", False, 2),
-    ("<009:RobotPick,R1,1,L1,1>\r\n", True, 2),
-    ("<010:RobotPlace,R1,1,A1,1>\r\n", True, 2),
-    ("<011:Remap,L1>\r\n", False, 2),
-    ("<012:align,A1,90>\r\n", True, 2),
-    ("<013:RobotPick,R1,1,A1,1>\r\n", True, 2),
-    ("<014:dooropen,P1>\r\n", False, 2),
-    ("<015:RobotPlace,R1,1,P1,1>\r\n", True, 2),
-    ("<016:doorclose,P1>\r\n", True, 2),
-    ("<017:RobotPick,R1,1,L1,1>\r\n", True, 2),
-    ("<018:process,P1>\r\n", False, 2),
-    ("<019:RobotPick,R1,1,L1,2>\r\n", True, 2),
-    ("<020:RobotPick,R1,1,L1,5>\r\n", True, 2),
-    ("<021:RobotPlace,R1,1,A1,1>\r\n", True, 2),
-    ("<022:align,A1,90>\r\n", True, 2),
-    ("<023:RobotPick,R1,1,A1,1>\r\n", True, 2),
-]
+from datetime import datetime
 
 def run_commands():
-    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pod, capacity=25, payloadType="wafer")))
+
+    pod = asyncio.run(execute(command_pb2.Job(action = command_pb2.Pod, capacity=25, payloadType="payload")))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Payload, slot=1)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Payload, slot=5)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Payload, slot=23)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Payload, slot=25)))
-    asyncio.run(execute(command_pb2.Job(action = command_pb2.Dock, target="L1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Dock, target="L1", podID = str(pod))))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Map, target="L1")))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.PowerOn, target="R1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=3)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=1)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="A1", slot=1)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorClose, target="L1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Map, target="L1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Process0, target="A1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="A1", slot=1)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorOpen, target="P1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="P1", slot=1)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorClose, target="P1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Process0, target="P1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=2)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorOpen, target="P1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=2, targetStation="P1", slot=2)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="P1", slot=2)))
 
 
 
@@ -54,5 +51,21 @@ def run_commands():
 async def execute(job):
     async with grpc.aio.insecure_channel('localhost:50051') as channel:
         stub = command_pb2_grpc.LayoutSimulatorStub(channel)
+
+        t = datetime.now()
+        print()
+        print(f"{t.strftime('%H:%M:%S')} : Command -> {job.action} | Target -> {job.target}.")
+
         response = await stub.ExecuteSimCommand(job)
-        print(f"Response: {response.responseType}, {response.response}")
+
+        if response.responseType == 0:
+            m = "ACK"
+        elif response.responseType == 1:
+            m = "NACK"
+        elif response.responseType == 2:
+            m = "SUCCESS"
+        else:
+            m = "ERROR"
+
+        print(f"    {(datetime.now() - t).total_seconds()}: Response -> {m} | Message -> {response.response}.")
+        return response.response

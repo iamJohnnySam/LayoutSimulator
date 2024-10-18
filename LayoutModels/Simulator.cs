@@ -196,7 +196,7 @@ namespace LayoutModels
             {
                 foreach (var command in commands)
                 {
-                    response = Execute(command, acked, response);
+                    response = Execute(command, acked, response, true);
                     acked = true;
                 }
             }
@@ -223,14 +223,14 @@ namespace LayoutModels
 
             try
             {
-                response = Execute(request, false, string.Empty);
+                response = Execute(request, false, string.Empty, false);
             }
             catch (NackResponse e)
             {
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(request, e.Code));
                 OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Nack},{e.Code}"));
                 gRPCResponse.ResponseType = ResponseTypes.Nack;
-                gRPCResponse.Response = response;
+                gRPCResponse.Response = e.Code.ToString();
                 return Task.FromResult(gRPCResponse);
             }
             catch (ErrorResponse e)
@@ -238,7 +238,7 @@ namespace LayoutModels
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateErrorResponse(request, e.Code));
                 OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Error},{e.Code}"));
                 gRPCResponse.ResponseType = ResponseTypes.Error;
-                gRPCResponse.Response = response;
+                gRPCResponse.Response = e.Code.ToString();
                 return Task.FromResult(gRPCResponse);
             }
 
@@ -248,8 +248,9 @@ namespace LayoutModels
             return Task.FromResult(gRPCResponse);
         }
 
-        private string Execute (Job command, bool acked, string response)
+        private string Execute (Job command, bool acked, string response, bool commandLock)
         {
+            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Processing {command.Action} for {command.Target}"));
             string _podID = string.Empty;
 
             switch (command.Action)
@@ -293,7 +294,7 @@ namespace LayoutModels
                 case CommandTypes.Door:
                     CheckStationExist(command.Target);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -309,7 +310,7 @@ namespace LayoutModels
                 case CommandTypes.DoorOpen:
                     CheckStationExist(command.Target);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -326,7 +327,7 @@ namespace LayoutModels
                 case CommandTypes.DoorClose:
                     CheckStationExist(command.Target);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -343,7 +344,7 @@ namespace LayoutModels
                 case CommandTypes.Map:
                     CheckStationExist(command.Target);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -365,7 +366,7 @@ namespace LayoutModels
                     CheckStationExist(command.Target);
                     CheckPodExist(_podID);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -383,7 +384,7 @@ namespace LayoutModels
                 case CommandTypes.Undock:
                     CheckStationExist(command.Target);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -409,7 +410,7 @@ namespace LayoutModels
                 case CommandTypes.Process9:
                     CheckStationExist(command.Target);
 
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
                     if (Stations[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
@@ -455,16 +456,34 @@ namespace LayoutModels
 
 
                 case CommandTypes.Home:
-                    CheckManipulatorExist(command.Target);
-                    if (!Manipulators[command.Target].Power)
-                        throw new NackResponse(NackCodes.PowerOff);
-                    if (Manipulators[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
-                    if (!acked)
-                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
-                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+                    if (Manipulators.ContainsKey(command.Target))
+                    {
+                        if (!Manipulators[command.Target].Power)
+                            throw new NackResponse(NackCodes.PowerOff);
+                        if (Manipulators[command.Target].Busy)
+                            throw new NackResponse(NackCodes.Busy);
+                        if (!acked)
+                            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                        OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
 
-                    Manipulators[command.Target].Home(command.TransactionID);
+                        Manipulators[command.Target].Home(command.TransactionID);
+                    }
+                    else if (Stations.ContainsKey(command.Target))
+                    {
+                        if (Stations[command.Target].Busy)
+                            throw new NackResponse(NackCodes.Busy);
+                        if (!Stations[command.Target].HasDoor)
+                            throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                        if (!acked)
+                            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                        OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                        Stations[command.Target].Door(command.TransactionID, true);
+                    }
+                    else
+                    {
+                        throw new NackResponse(NackCodes.CommandError);
+                    }
                     break;
 
 
