@@ -45,6 +45,7 @@ def send_command(command):
     print()
     print(f"{datetime.now().strftime('%H:%M:%S')}: {command.replace('\n', '').replace('\r', '')}")
     
+    ## IF YOU GET AN ERROR HERE, USE PYTHON v3.13 OR HIGHER.
 
 def receive_ack():
     global connection
