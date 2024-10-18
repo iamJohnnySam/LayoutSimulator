@@ -8,9 +8,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using System.Xml;
 using System.Xml.Linq;
-using static System.Collections.Specialized.BitVector32;
+using LayoutCommands;
 
 namespace LayoutModels
 {
@@ -201,7 +200,7 @@ namespace LayoutModels
 
                     switch (command.Action)
                     {
-                        case CommandTypes.PICK:
+                        case CommandTypes.Pick:
                             CheckManipulatorExist(command.Target);
                             CheckStationExist(command.TargetStation);
 
@@ -219,7 +218,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.PLACE:
+                        case CommandTypes.Place:
                             CheckManipulatorExist(command.Target);
                             CheckStationExist(command.TargetStation);
 
@@ -237,7 +236,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.DOOR:
+                        case CommandTypes.Door:
                             CheckStationExist(command.Target);
 
                             if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
@@ -253,7 +252,7 @@ namespace LayoutModels
                             Stations[command.Target].Door(command.TransactionID, command.State);
                             break;
 
-                        case CommandTypes.DOOROPEN:
+                        case CommandTypes.DoorOpen:
                             CheckStationExist(command.Target);
 
                             if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
@@ -270,7 +269,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.DOORCLOSE:
+                        case CommandTypes.DoorClose:
                             CheckStationExist(command.Target);
 
                             if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
@@ -287,7 +286,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.MAP:
+                        case CommandTypes.Map:
                             CheckStationExist(command.Target);
 
                             if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
@@ -305,7 +304,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.DOCK:
+                        case CommandTypes.Dock:
                             if (command.PodID.Length > 0) _podID = command.PodID;
                             else _podID = Pods.Keys.Last();
 
@@ -327,7 +326,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.UNDOCK:
+                        case CommandTypes.Undock:
                             CheckStationExist(command.Target);
 
                             if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
@@ -344,16 +343,16 @@ namespace LayoutModels
                             Pods.Add(outgoingPod.PodID, outgoingPod);
                             break;
 
-                        case CommandTypes.PROCESS0:
-                        case CommandTypes.PROCESS1:
-                        case CommandTypes.PROCESS2:
-                        case CommandTypes.PROCESS3:
-                        case CommandTypes.PROCESS4:
-                        case CommandTypes.PROCESS5:
-                        case CommandTypes.PROCESS6:
-                        case CommandTypes.PROCESS7:
-                        case CommandTypes.PROCESS8:
-                        case CommandTypes.PROCESS9:
+                        case CommandTypes.Process0:
+                        case CommandTypes.Process1:
+                        case CommandTypes.Process2:
+                        case CommandTypes.Process3:
+                        case CommandTypes.Process4:
+                        case CommandTypes.Process5:
+                        case CommandTypes.Process6:
+                        case CommandTypes.Process7:
+                        case CommandTypes.Process8:
+                        case CommandTypes.Process9:
                             CheckStationExist(command.Target);
 
                             if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
@@ -368,7 +367,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.POWER:
+                        case CommandTypes.Power:
                             CheckManipulatorExist(command.Target);
                             if (!acked)
                                 OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
@@ -381,7 +380,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.POWERON:
+                        case CommandTypes.PowerOn:
                             CheckManipulatorExist(command.Target);
                             if (!acked)
                                 OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
@@ -391,7 +390,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.POWEROFF:
+                        case CommandTypes.PowerOff:
                             CheckManipulatorExist(command.Target);
                             if (!acked)
                                 OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
@@ -401,7 +400,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.HOME:
+                        case CommandTypes.Home:
                             CheckManipulatorExist(command.Target);
                             if (!Manipulators[command.Target].Power)
                                 throw new NackResponse(NackCodes.PowerOff);
@@ -415,8 +414,8 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.READPOD:
-                        case CommandTypes.READSLOT:
+                        case CommandTypes.ReadPod:
+                        case CommandTypes.ReadSlot:
                             CheckReaderExist(command.Target);
                             if (!acked)
                                 OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
@@ -426,7 +425,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.POD:
+                        case CommandTypes.Pod:
                             if (!acked)
                                 OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
                             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
@@ -438,7 +437,7 @@ namespace LayoutModels
                             break;
 
 
-                        case CommandTypes.PAYLOAD:
+                        case CommandTypes.Payload:
                             if (command.PodID.Length > 0) _podID = command.PodID;
                             else _podID = Pods.Keys.Last();
                             CheckPodExist(_podID);

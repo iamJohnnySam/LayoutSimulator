@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
+using LayoutCommands;
 
 namespace LayoutModels
 {
@@ -21,7 +22,7 @@ namespace LayoutModels
         public ResponseStructure AckS { get; set; } = ackStruct;
         public ICommSpec CommSpec { get; set; } = commSpec;
 
-        private List<CommandTypes> IgnoreTargetCommands = [ CommandTypes.POD, CommandTypes.PAYLOAD ];
+        private List<CommandTypes> IgnoreTargetCommands = [ CommandTypes.Pod, CommandTypes.Payload ];
 
 
         private int GetIndex(CommandArgTypes value, List<CommandArgTypes> args)
@@ -91,7 +92,7 @@ namespace LayoutModels
 
                 switch (command)
                 {
-                    case CommandTypes.PICK:
+                    case CommandTypes.Pick:
                         try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawAction])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
@@ -102,7 +103,7 @@ namespace LayoutModels
 
                         break;
 
-                    case CommandTypes.PLACE:
+                    case CommandTypes.Place:
                         try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawAction])]); }
                         catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
 
@@ -113,7 +114,7 @@ namespace LayoutModels
 
                         break;
 
-                    case CommandTypes.DOOR:
+                    case CommandTypes.Door:
                         if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawAction])] == "0")
                         {
                             runCommand.State = false;
@@ -138,11 +139,11 @@ namespace LayoutModels
                         break;
 
 
-                    case CommandTypes.SDOCK:
+                    case CommandTypes.Sdock:
                         runCommand.PodID = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawAction])];
                         break;
 
-                    case CommandTypes.POWER:
+                    case CommandTypes.Power:
 
                         if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawAction])] == "0")
                         {
@@ -167,12 +168,12 @@ namespace LayoutModels
                         }
                         break;
 
-                    case CommandTypes.POD:
+                    case CommandTypes.Pod:
                         runCommand.Capacity = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Capacity, CommSpec.CommandArgs[rawAction])]);
                         runCommand.PayloadType = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Type, CommSpec.CommandArgs[rawAction])];
                         break;
 
-                    case CommandTypes.PAYLOAD:
+                    case CommandTypes.Payload:
                         runCommand.PodID = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawAction])];
                         runCommand.Slot = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]);
                         break;

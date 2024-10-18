@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using LayoutCommands;
 
 namespace LayoutModels.CommSpecs
 {
@@ -15,28 +16,28 @@ namespace LayoutModels.CommSpecs
 
         public UniversalCommSpec()
         {
-            CommandMap.Add("ROBOTPICK", new List<CommandTypes> { CommandTypes.PICK });
-            CommandMap.Add("ROBOTPLACE", new List<CommandTypes> { CommandTypes.PLACE });
-            CommandMap.Add("LOAD", new List<CommandTypes> { CommandTypes.DOOROPEN });
-            CommandMap.Add("UNLOAD", new List<CommandTypes> { CommandTypes.DOORCLOSE });
-            CommandMap.Add("DOOROPEN", new List<CommandTypes> { CommandTypes.DOOROPEN });
-            CommandMap.Add("DOORCLOSE", new List<CommandTypes> { CommandTypes.DOORCLOSE });
-            CommandMap.Add("LOADANDMAP", new List<CommandTypes> { CommandTypes.MAP });
-            CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.DOORCLOSE, CommandTypes.MAP });
-            CommandMap.Add("DOCK", new List<CommandTypes> { CommandTypes.DOCK });
-            CommandMap.Add("SDOCK", new List<CommandTypes> { CommandTypes.SDOCK });
-            CommandMap.Add("UNDOCK", new List<CommandTypes> { CommandTypes.UNDOCK });
-            CommandMap.Add("PROCESS", new List<CommandTypes> { CommandTypes.PROCESS0 });
-            CommandMap.Add("ALIGN", new List<CommandTypes> { CommandTypes.PROCESS1 });
-            CommandMap.Add("SERVOON", new List<CommandTypes> { CommandTypes.POWERON });
-            CommandMap.Add("SERVOOFF", new List<CommandTypes> { CommandTypes.POWEROFF });
-            CommandMap.Add("HOME", new List<CommandTypes> { CommandTypes.HOME });
+            CommandMap.Add("ROBOTPICK", new List<CommandTypes> { CommandTypes.Pick });
+            CommandMap.Add("ROBOTPLACE", new List<CommandTypes> { CommandTypes.Place });
+            CommandMap.Add("LOAD", new List<CommandTypes> { CommandTypes.DoorOpen });
+            CommandMap.Add("UNLOAD", new List<CommandTypes> { CommandTypes.DoorClose });
+            CommandMap.Add("DOOROPEN", new List<CommandTypes> { CommandTypes.DoorOpen });
+            CommandMap.Add("DOORCLOSE", new List<CommandTypes> { CommandTypes.DoorClose });
+            CommandMap.Add("LOADANDMAP", new List<CommandTypes> { CommandTypes.Map });
+            CommandMap.Add("REMAP", new List<CommandTypes> { CommandTypes.DoorClose, CommandTypes.Map });
+            CommandMap.Add("DOCK", new List<CommandTypes> { CommandTypes.Dock });
+            CommandMap.Add("SDOCK", new List<CommandTypes> { CommandTypes.Sdock });
+            CommandMap.Add("UNDOCK", new List<CommandTypes> { CommandTypes.Undock });
+            CommandMap.Add("PROCESS", new List<CommandTypes> { CommandTypes.Process0 });
+            CommandMap.Add("ALIGN", new List<CommandTypes> { CommandTypes.Process1 });
+            CommandMap.Add("SERVOON", new List<CommandTypes> { CommandTypes.PowerOn });
+            CommandMap.Add("SERVOOFF", new List<CommandTypes> { CommandTypes.PowerOff });
+            CommandMap.Add("HOME", new List<CommandTypes> { CommandTypes.Home });
 
-            CommandMap.Add("READRFID", new List<CommandTypes> { CommandTypes.READPOD });
-            CommandMap.Add("OCR", new List<CommandTypes> { CommandTypes.READSLOT });
+            CommandMap.Add("READRFID", new List<CommandTypes> { CommandTypes.ReadPod });
+            CommandMap.Add("OCR", new List<CommandTypes> { CommandTypes.ReadSlot });
 
-            CommandMap.Add("POD", new List<CommandTypes> { CommandTypes.POD });
-            CommandMap.Add("PAYLOAD", new List<CommandTypes> { CommandTypes.PAYLOAD });
+            CommandMap.Add("POD", new List<CommandTypes> { CommandTypes.Pod });
+            CommandMap.Add("PAYLOAD", new List<CommandTypes> { CommandTypes.Payload });
            
 
             CommandArgs.Add("ROBOTPICK", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot });

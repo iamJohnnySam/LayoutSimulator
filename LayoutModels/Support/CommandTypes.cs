@@ -6,37 +6,6 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.Support
 {
-    public enum CommandTypes
-    {
-        PICK,
-        PLACE,
-        DOOR,
-        DOOROPEN,
-        DOORCLOSE,
-        MAP,
-        DOCK,
-        SDOCK,
-        UNDOCK,
-        PROCESS0,
-        PROCESS1,
-        PROCESS2,
-        PROCESS3,
-        PROCESS4,
-        PROCESS5,
-        PROCESS6,
-        PROCESS7,
-        PROCESS8,
-        PROCESS9,
-        POWER,
-        POWERON,
-        POWEROFF,
-        HOME,
-        READSLOT,
-        READPOD,
-
-        POD,
-        PAYLOAD,
-    }
 
     public enum CommandArgTypes
     {

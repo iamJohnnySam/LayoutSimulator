@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package LayoutCommands;
+
+service LayoutSimulator {
+  rpc Execute (Job) returns (CommandReply);
+}
+
+message Job {
+  CommandTypes action = 1;
+  string transactionID = 2;
+  string target = 3;
+  int32 endEffector = 4;
+  int32 slot = 5;
+  string podID = 6;
+  bool state = 7;
+  int32 capacity = 8;
+  string payloadType = 9;
+  string targetStation = 10;
+
+  string rawAction = 11;
+  string rawCommand = 12;
+}
+
+message CommandReply {
+  string responseType = 1;
+  string response = 2;
+}
+
+
+enum CommandTypes {
+    Pick = 0;
+    Place = 1;
+    Door = 2;
+    DoorOpen = 3;
+    DoorClose = 4;
+    Map = 5;
+    Dock = 6;
+    SDock = 7;
+    Undock = 8;
+    Process0 = 9;
+    Process1 = 10;
+    Process2 = 11;
+    Process3 = 12;
+    Process4 = 13;
+    Process5 = 14;
+    Process6 = 15;
+    Process7 = 16;
+    Process8 = 17;
+    Process9 = 18;
+    Power = 19;
+    PowerOn = 20;
+    PowerOff = 21;
+    Home = 22;
+
+    ReadSlot = 23;
+    ReadPod = 24;
+
+    Pod = 25;
+    Payload = 26;
+}
