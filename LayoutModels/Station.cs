@@ -50,7 +50,16 @@ namespace LayoutModels
         
         private string? podID = null;
         public string PodID {
-            get { return PodID; }
+            get 
+            { 
+                if (PodDockable && (State != StationState.UnDocked))
+                {
+                    return PodID;
+                }
+                else
+                    throw new ErrorResponse(ErrorCodes.PodNotAvailable);
+
+            }
             private set
             {
                 podID = value;
