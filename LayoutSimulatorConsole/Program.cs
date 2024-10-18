@@ -1,6 +1,8 @@
 ﻿using LayoutModels.CommSpecs;
 using LayoutModels;
 using Communicator;
+using LayoutCommands;
+using Grpc.Core;
 
 string? command = null;
 
@@ -18,6 +20,17 @@ Simulator simulator = new Simulator(new CommandStructure(false, "<", ">", ",:", 
 server.OnMessageReceived += Server_OnMessageReceived;
 simulator.OnLogEvent += Simulator_OnLogEvent;
 simulator.OnResponseEvent += Simulator_OnErrorEvent;
+
+
+
+Server grpcServer = new Server
+{
+    Services = { LayoutSimulator.BindService(simulator) },
+    Ports = { new ServerPort("localhost", 50051, ServerCredentials.Insecure) }
+};
+grpcServer.Start();
+Console.WriteLine($"gRPC server listening on port 50051");
+
 
 void Server_OnMessageReceived(object? sender, string e)
 {
@@ -41,3 +54,4 @@ while (true)
     simulator.ProcessCommands(command);
 }
 
+await grpcServer.ShutdownAsync();

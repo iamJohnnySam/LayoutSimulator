@@ -193,15 +193,15 @@ namespace LayoutModels
 
             switch (RspType)
             {
-                case ResponseTypes.ACK:
-                case ResponseTypes.NACK:
+                case ResponseTypes.Ack:
+                case ResponseTypes.Nack:
                     UseS = AckS; break;
-                case ResponseTypes.ERROR:
-                case ResponseTypes.SUCCESS:
+                case ResponseTypes.Error:
+                case ResponseTypes.Success:
                     UseS = RspS; break;
             }
 
-            if (RspType == ResponseTypes.ACK)
+            if (RspType == ResponseTypes.Ack)
             {
                 message = AckS.InjectAckResponse;
             }
@@ -244,12 +244,12 @@ namespace LayoutModels
 
         public string TranslateErrorResponse(Job command, ErrorCodes code)
         {
-            return TranslateResponse(command, ResponseTypes.ERROR, code.ToString());
+            return TranslateResponse(command, ResponseTypes.Error, code.ToString());
         }
 
         public string TranslateNackResponse(Job command, NackCodes code)
         {
-            return TranslateResponse(command, ResponseTypes.NACK, code.ToString());
+            return TranslateResponse(command, ResponseTypes.Nack, code.ToString());
         }
 
     }

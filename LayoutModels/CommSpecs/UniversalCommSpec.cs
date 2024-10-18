@@ -64,10 +64,10 @@ namespace LayoutModels.CommSpecs
             CommandArgs.Add("PAYLOAD", new List<CommandArgTypes> { CommandArgTypes.PodID, CommandArgTypes.Slot});
 
 
-            ResponseMap.Add(ResponseTypes.ACK, "ACK");
-            ResponseMap.Add(ResponseTypes.NACK, "NAK");
-            ResponseMap.Add(ResponseTypes.SUCCESS, "SUCCESS");
-            ResponseMap.Add(ResponseTypes.ERROR, "ERROR");
+            ResponseMap.Add(ResponseTypes.Ack, "ACK");
+            ResponseMap.Add(ResponseTypes.Nack, "NAK");
+            ResponseMap.Add(ResponseTypes.Success, "SUCCESS");
+            ResponseMap.Add(ResponseTypes.Error, "ERROR");
         }
     }
 }

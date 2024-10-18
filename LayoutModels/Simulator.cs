@@ -10,10 +10,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using LayoutCommands;
+using Grpc.Core;
 
 namespace LayoutModels
 {
-    public class Simulator
+    public class Simulator : LayoutSimulator.LayoutSimulatorBase
     {
         public event EventHandler<LogMessage>? OnLogEvent;
         public event EventHandler<string>? OnResponseEvent;
@@ -170,7 +171,7 @@ namespace LayoutModels
                 Job job = new Job();
                 job.RawCommand = _command;
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(job, NackCodes.MissingArguments));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{NackCodes.MissingArguments}"));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
                 return; 
             }
             catch(System.ArgumentOutOfRangeException)
@@ -178,7 +179,7 @@ namespace LayoutModels
                 Job job = new Job();
                 job.RawCommand = _command;
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(job, NackCodes.MissingArguments));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{NackCodes.MissingArguments}"));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
                 return;
             }
             catch (NackResponse e)
@@ -186,297 +187,334 @@ namespace LayoutModels
                 Job job = new Job();
                 job.RawCommand = _command;
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(job, e.Code));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.NACK},{e.Code}"));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{e.Code}"));
                 return; 
             }
-
             string response = string.Empty;
             bool acked = false;
             try
             {
                 foreach (var command in commands)
                 {
-                    string _podID = string.Empty;
-
-                    switch (command.Action)
-                    {
-                        case CommandTypes.Pick:
-                            CheckManipulatorExist(command.Target);
-                            CheckStationExist(command.TargetStation);
-
-                            if (!Manipulators[command.Target].Power)
-                                throw new NackResponse(NackCodes.PowerOff);
-                            if (Manipulators[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
-                                throw new NackResponse(NackCodes.EndEffectorMissing);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Manipulators[command.Target].Pick(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
-                            break;
-
-
-                        case CommandTypes.Place:
-                            CheckManipulatorExist(command.Target);
-                            CheckStationExist(command.TargetStation);
-
-                            if (!Manipulators[command.Target].Power)
-                                throw new NackResponse(NackCodes.PowerOff);
-                            if (Manipulators[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
-                                throw new NackResponse(NackCodes.EndEffectorMissing);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Manipulators[command.Target].Place(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
-                            break;
-
-
-                        case CommandTypes.Door:
-                            CheckStationExist(command.Target);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Stations[command.Target].HasDoor)
-                                throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Stations[command.Target].Door(command.TransactionID, command.State);
-                            break;
-
-                        case CommandTypes.DoorOpen:
-                            CheckStationExist(command.Target);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Stations[command.Target].HasDoor)
-                                throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Stations[command.Target].Door(command.TransactionID, false);
-                            break;
-
-
-                        case CommandTypes.DoorClose:
-                            CheckStationExist(command.Target);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Stations[command.Target].HasDoor)
-                                throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Stations[command.Target].Door(command.TransactionID, true);
-                            break;
-
-
-                        case CommandTypes.Map:
-                            CheckStationExist(command.Target);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Stations[command.Target].Mappable)
-                                throw new NackResponse(NackCodes.NotMappable);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            List<int> mapData = Stations[command.Target].OpenDoorAndMap(command.TransactionID).Cast<int>().ToList();
-                            response = string.Join("", mapData);
-                            break;
-
-
-                        case CommandTypes.Dock:
-                            if (command.PodID.Length > 0) _podID = command.PodID;
-                            else _podID = Pods.Keys.Last();
-
-                            CheckStationExist(command.Target);
-                            CheckPodExist(_podID);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Stations[command.Target].PodDockable)
-                                throw new NackResponse(NackCodes.NotDockable);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Stations[command.Target].Dock(command.TransactionID, Pods[_podID]);
-                            Pods.Remove(command.PodID);
-                            break;
-
-
-                        case CommandTypes.Undock:
-                            CheckStationExist(command.Target);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!Stations[command.Target].PodDockable)
-                                throw new NackResponse(NackCodes.NotDockable);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Pod outgoingPod = Stations[command.Target].UnDock(command.TransactionID);
-                            Pods.Add(outgoingPod.PodID, outgoingPod);
-                            break;
-
-                        case CommandTypes.Process0:
-                        case CommandTypes.Process1:
-                        case CommandTypes.Process2:
-                        case CommandTypes.Process3:
-                        case CommandTypes.Process4:
-                        case CommandTypes.Process5:
-                        case CommandTypes.Process6:
-                        case CommandTypes.Process7:
-                        case CommandTypes.Process8:
-                        case CommandTypes.Process9:
-                            CheckStationExist(command.Target);
-
-                            if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
-                                throw new NackResponse(NackCodes.CommandError);
-                            if (Stations[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Stations[command.Target].Process(command.TransactionID);
-                            break;
-
-
-                        case CommandTypes.Power:
-                            CheckManipulatorExist(command.Target);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            if (command.State)
-                                Manipulators[command.Target].PowerOn(command.TransactionID);
-                            else
-                                Manipulators[command.Target].PowerOff(command.TransactionID);
-                            break;
-
-
-                        case CommandTypes.PowerOn:
-                            CheckManipulatorExist(command.Target);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Manipulators[command.Target].PowerOn(command.TransactionID);
-                            break;
-
-
-                        case CommandTypes.PowerOff:
-                            CheckManipulatorExist(command.Target);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Manipulators[command.Target].PowerOff(command.TransactionID);
-                            break;
-
-
-                        case CommandTypes.Home:
-                            CheckManipulatorExist(command.Target);
-                            if (!Manipulators[command.Target].Power)
-                                throw new NackResponse(NackCodes.PowerOff);
-                            if (Manipulators[command.Target].Busy)
-                                throw new NackResponse(NackCodes.Busy);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            Manipulators[command.Target].Home(command.TransactionID);
-                            break;
-
-
-                        case CommandTypes.ReadPod:
-                        case CommandTypes.ReadSlot:
-                            CheckReaderExist(command.Target);
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            response = Readers[command.Target].ReadID(command.TransactionID);
-                            break;
-
-
-                        case CommandTypes.Pod:
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            string podID = GetID(5);
-                            Pods.Add(podID, new Pod(podID, command.Capacity, command.PayloadType));
-                            response = podID;
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Pod {podID}."));
-                            break;
-
-
-                        case CommandTypes.Payload:
-                            if (command.PodID.Length > 0) _podID = command.PodID;
-                            else _podID = Pods.Keys.Last();
-                            CheckPodExist(_podID);
-                            if (command.Slot < 1)
-                                throw new NackResponse(NackCodes.CommandError);
-                            int add_payload_slot = command.Slot;
-                            while (Pods[_podID].slots.ContainsKey(add_payload_slot))
-                            {
-                                add_payload_slot++;
-                                if (add_payload_slot > Pods[_podID].Capacity)
-                                    throw new NackResponse(NackCodes.CommandError);
-                            }
-                            if (!acked)
-                                OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.ACK, ""));
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.ACK}"));
-
-                            string payloadID = GetID(5);
-                            Pods[_podID].slots[add_payload_slot] = new Payload(payloadID, Pods[_podID].PayloadType);
-                            response = payloadID;
-                            OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {_podID} at slot {add_payload_slot}."));
-                            break;
-                    }
+                    response = Execute(command, acked, response);
                     acked = true;
                 }
             }
             catch (NackResponse e)
             {
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(commands.Last(), e.Code));
-                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.NACK},{e.Code}"));
+                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Nack},{e.Code}"));
                 return;
             }
             catch (ErrorResponse e)
             {
                 OnResponseEvent?.Invoke(this, CommSpec.TranslateErrorResponse(commands.Last(), e.Code));
-                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.ERROR},{e.Code}"));
+                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Error},{e.Code}"));
                 return;
             }
-            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(commands.Last(), ResponseTypes.SUCCESS, response));
-            OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.SUCCESS},{response}"));
+            OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(commands.Last(), ResponseTypes.Success, response));
+            OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Success},{response}"));
+        }
+
+        public override Task<CommandReply> ExecuteSimCommand(Job request, ServerCallContext context)
+        {
+            string response = string.Empty;
+            CommandReply gRPCResponse = new CommandReply();
+
+            try
+            {
+                response = Execute(request, false, string.Empty);
+            }
+            catch (NackResponse e)
+            {
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateNackResponse(request, e.Code));
+                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Nack},{e.Code}"));
+                gRPCResponse.ResponseType = ResponseTypes.Nack;
+                gRPCResponse.Response = response;
+                return Task.FromResult(gRPCResponse);
+            }
+            catch (ErrorResponse e)
+            {
+                OnResponseEvent?.Invoke(this, CommSpec.TranslateErrorResponse(request, e.Code));
+                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Error},{e.Code}"));
+                gRPCResponse.ResponseType = ResponseTypes.Error;
+                gRPCResponse.Response = response;
+                return Task.FromResult(gRPCResponse);
+            }
+
+            gRPCResponse.ResponseType = ResponseTypes.Success;
+            gRPCResponse.Response = response;
+
+            return Task.FromResult(gRPCResponse);
+        }
+
+        private string Execute (Job command, bool acked, string response)
+        {
+            string _podID = string.Empty;
+
+            switch (command.Action)
+            {
+                case CommandTypes.Pick:
+                    CheckManipulatorExist(command.Target);
+                    CheckStationExist(command.TargetStation);
+
+                    if (!Manipulators[command.Target].Power)
+                        throw new NackResponse(NackCodes.PowerOff);
+                    if (Manipulators[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
+                        throw new NackResponse(NackCodes.EndEffectorMissing);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Manipulators[command.Target].Pick(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
+                    break;
+
+
+                case CommandTypes.Place:
+                    CheckManipulatorExist(command.Target);
+                    CheckStationExist(command.TargetStation);
+
+                    if (!Manipulators[command.Target].Power)
+                        throw new NackResponse(NackCodes.PowerOff);
+                    if (Manipulators[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
+                        throw new NackResponse(NackCodes.EndEffectorMissing);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Manipulators[command.Target].Place(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
+                    break;
+
+
+                case CommandTypes.Door:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].HasDoor)
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Stations[command.Target].Door(command.TransactionID, command.State);
+                    break;
+
+                case CommandTypes.DoorOpen:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].HasDoor)
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Stations[command.Target].Door(command.TransactionID, false);
+                    break;
+
+
+                case CommandTypes.DoorClose:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].HasDoor)
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Stations[command.Target].Door(command.TransactionID, true);
+                    break;
+
+
+                case CommandTypes.Map:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].Mappable)
+                        throw new NackResponse(NackCodes.NotMappable);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    List<int> mapData = Stations[command.Target].OpenDoorAndMap(command.TransactionID).Cast<int>().ToList();
+                    response = string.Join("", mapData);
+                    break;
+
+
+                case CommandTypes.Dock:
+                    if (command.PodID.Length > 0) _podID = command.PodID;
+                    else _podID = Pods.Keys.Last();
+
+                    CheckStationExist(command.Target);
+                    CheckPodExist(_podID);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].PodDockable)
+                        throw new NackResponse(NackCodes.NotDockable);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Stations[command.Target].Dock(command.TransactionID, Pods[_podID]);
+                    Pods.Remove(command.PodID);
+                    break;
+
+
+                case CommandTypes.Undock:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].PodDockable)
+                        throw new NackResponse(NackCodes.NotDockable);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Pod outgoingPod = Stations[command.Target].UnDock(command.TransactionID);
+                    Pods.Add(outgoingPod.PodID, outgoingPod);
+                    break;
+
+                case CommandTypes.Process0:
+                case CommandTypes.Process1:
+                case CommandTypes.Process2:
+                case CommandTypes.Process3:
+                case CommandTypes.Process4:
+                case CommandTypes.Process5:
+                case CommandTypes.Process6:
+                case CommandTypes.Process7:
+                case CommandTypes.Process8:
+                case CommandTypes.Process9:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction))
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Stations[command.Target].Process(command.TransactionID);
+                    break;
+
+
+                case CommandTypes.Power:
+                    CheckManipulatorExist(command.Target);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    if (command.State)
+                        Manipulators[command.Target].PowerOn(command.TransactionID);
+                    else
+                        Manipulators[command.Target].PowerOff(command.TransactionID);
+                    break;
+
+
+                case CommandTypes.PowerOn:
+                    CheckManipulatorExist(command.Target);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Manipulators[command.Target].PowerOn(command.TransactionID);
+                    break;
+
+
+                case CommandTypes.PowerOff:
+                    CheckManipulatorExist(command.Target);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Manipulators[command.Target].PowerOff(command.TransactionID);
+                    break;
+
+
+                case CommandTypes.Home:
+                    CheckManipulatorExist(command.Target);
+                    if (!Manipulators[command.Target].Power)
+                        throw new NackResponse(NackCodes.PowerOff);
+                    if (Manipulators[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    Manipulators[command.Target].Home(command.TransactionID);
+                    break;
+
+
+                case CommandTypes.ReadPod:
+                case CommandTypes.ReadSlot:
+                    CheckReaderExist(command.Target);
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    response = Readers[command.Target].ReadID(command.TransactionID);
+                    break;
+
+
+                case CommandTypes.Pod:
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    string podID = GetID(5);
+                    Pods.Add(podID, new Pod(podID, command.Capacity, command.PayloadType));
+                    response = podID;
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Pod {podID}."));
+                    break;
+
+
+                case CommandTypes.Payload:
+                    if (command.PodID.Length > 0) _podID = command.PodID;
+                    else _podID = Pods.Keys.Last();
+                    CheckPodExist(_podID);
+                    if (command.Slot < 1)
+                        throw new NackResponse(NackCodes.CommandError);
+                    int add_payload_slot = command.Slot;
+                    while (Pods[_podID].slots.ContainsKey(add_payload_slot))
+                    {
+                        add_payload_slot++;
+                        if (add_payload_slot > Pods[_podID].Capacity)
+                            throw new NackResponse(NackCodes.CommandError);
+                    }
+                    if (!acked)
+                        OnResponseEvent?.Invoke(this, CommSpec.TranslateResponse(command, ResponseTypes.Ack, ""));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"{ResponseTypes.Ack}"));
+
+                    string payloadID = GetID(5);
+                    Pods[_podID].slots[add_payload_slot] = new Payload(payloadID, Pods[_podID].PayloadType);
+                    response = payloadID;
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {_podID} at slot {add_payload_slot}."));
+                    break;
+            }
+            return response;
         }
 
         private void OnSupportLogEvent(object? sender, Support.LogMessage e)

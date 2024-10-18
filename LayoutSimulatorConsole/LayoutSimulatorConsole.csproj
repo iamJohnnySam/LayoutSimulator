@@ -8,6 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Grpc.Core" Version="2.46.6" />
+    <PackageReference Include="Grpc.Net.Client" Version="2.66.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Communicator\Communicator.csproj" />
     <ProjectReference Include="..\LayoutModels\LayoutModels.csproj" />
   </ItemGroup>

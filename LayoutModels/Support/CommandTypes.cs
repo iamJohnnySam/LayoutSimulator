@@ -25,12 +25,4 @@ namespace LayoutModels.Support
 
         Ignore
     }
-
-    public enum ResponseTypes
-    {
-        ACK,
-        NACK,
-        SUCCESS,
-        ERROR
-    }
 }
