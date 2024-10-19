@@ -15,7 +15,6 @@
 			<PodDockable>1</PodDockable>
 			<AcceptedCommands>LOAD,UNLOAD,LOADANDMAP,REMAP,DOCK,SDOCK,UNDOCK</AcceptedCommands>
 			<Count>3</Count>
-			<ConnectionPort>9000</ConnectionPort>
 		</Station>
 		<Station>
 			<Identifier>P</Identifier>
@@ -31,7 +30,6 @@
 			<PodDockable>0</PodDockable>
 			<AcceptedCommands>DOOROPEN,DOORCLOSE,PROCESS</AcceptedCommands>
 			<Count>2</Count>
-			<ConnectionPort>9010</ConnectionPort>
 		</Station>
 		<Station>
 			<Identifier>A</Identifier>
@@ -47,7 +45,6 @@
 			<PodDockable>0</PodDockable>
 			<AcceptedCommands>ALIGN</AcceptedCommands>
 			<Count>1</Count>
-			<ConnectionPort>9010</ConnectionPort>
 		</Station>
 	</Stations>
 	<Manipulators>
@@ -59,7 +56,6 @@
 			<ExtendTime>3</ExtendTime>
 			<RetractTime>3</RetractTime>
 			<Count>1</Count>
-			<ConnectionPort>9020</ConnectionPort>
 		</Manipulator>
 	</Manipulators>
 	<Readers>
@@ -69,7 +65,6 @@
 			<Type>PAYLOAD</Type>
 			<StationIdentifier>L</StationIdentifier>
 			<Slot>1</Slot>
-			<ConnectionPort>9030</ConnectionPort>
 		</Reader>
 	</Readers>
 </Simulation>

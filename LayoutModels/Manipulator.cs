@@ -47,10 +47,10 @@ namespace LayoutModels
 
         private void GoToStation(string stationID)
         {
-            if (CurrentLocation != StationID)
+            if (CurrentLocation != stationID)
             {
                 TimeKeeper.ProcessWait(MotionTime);
-                CurrentLocation = StationID;
+                CurrentLocation = stationID;
             }
         }
 

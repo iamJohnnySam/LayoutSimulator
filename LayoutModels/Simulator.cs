@@ -40,8 +40,13 @@ namespace LayoutModels
         public Simulator(string xmlPath)
         {
             XDocument simDoc = XDocument.Load(xmlPath);
+            CreateStations (simDoc.Descendants("Station"));
+            CreateManipulators (simDoc.Descendants("Manipulator"));
+            CreateReaders (simDoc.Descendants("Reader"));
+        }
 
-            var stations = simDoc.Descendants("Station");
+        private void CreateStations(IEnumerable<XElement> stations)
+        {
             foreach (var station in stations)
             {
                 string identifier = station.Element("Identifier")?.Value ?? "P";
@@ -57,11 +62,10 @@ namespace LayoutModels
                 bool podDockable = station.Element("PodDockable")?.Value == "1";
                 List<string> acceptedCommands = (station.Element("AcceptedCommands")?.Value ?? "").Split(',').Select(loc => loc.Trim()).ToList();
                 int count = int.Parse(station.Element("Count")?.Value ?? "1");
-                int port = int.Parse(station.Element("ConnectionPort")?.Value ?? "7000");
 
                 for (int i = 0; i < count; i++)
                 {
-                    int j = i+1;
+                    int j = i + 1;
                     string stationName = $"{identifier}{j++}";
                     while (Stations.ContainsKey(stationName))
                         stationName = $"{identifier}{j}";
@@ -69,8 +73,9 @@ namespace LayoutModels
                     Stations[stationName].OnLogEvent += OnSimulatorLogEvent;
                 }
             }
-
-            var manipulators = simDoc.Descendants("Manipulator");
+        }
+        private void CreateManipulators(IEnumerable<XElement> manipulators)
+        {
             foreach (var manipulator in manipulators)
             {
                 string identifier = manipulator.Element("Identifier")?.Value ?? "R";
@@ -80,16 +85,15 @@ namespace LayoutModels
                 int extendTime = int.Parse(manipulator.Element("ExtendTime")?.Value ?? "0");
                 int retractTime = int.Parse(manipulator.Element("RetractTime")?.Value ?? "0");
                 int count = int.Parse(manipulator.Element("Count")?.Value ?? "0");
-                int port = int.Parse(manipulator.Element("ConnectionPort")?.Value ?? "7000");
 
                 Dictionary<int, Dictionary<string, Payload>> endEffectors = new();
                 int endEffector = 1;
                 foreach (string payload in endEffectorsTypes)
                     endEffectors.Add(endEffector++, new Dictionary<string, Payload>());
-  
+
                 for (int i = 0; i < count; i++)
                 {
-                    int j = i+1;
+                    int j = i + 1;
                     string manipulatornName = $"{identifier}{j++}";
                     while (Manipulators.ContainsKey(manipulatornName))
                         manipulatornName = $"{identifier}{j}";
@@ -97,15 +101,15 @@ namespace LayoutModels
                     Manipulators[manipulatornName].OnLogEvent += OnSimulatorLogEvent;
                 }
             }
-
-            var readers = simDoc.Descendants("Reader");
+        }
+        private void CreateReaders(IEnumerable<XElement> readers)
+        {
             foreach (var reader in readers)
             {
                 string identifier = reader.Element("Identifier")?.Value ?? "B";
                 string stationID = reader.Element("StationIdentifier")?.Value ?? "P";
                 string type = reader.Element("Type")?.Value ?? "PAYLOAD";
                 int slot = int.Parse(reader.Element("Slot")?.Value ?? "1");
-                int port = int.Parse(reader.Element("ConnectionPort")?.Value ?? "7000");
 
                 int j = 1;
                 string targetStation = $"{stationID}{j}";
@@ -120,11 +124,9 @@ namespace LayoutModels
 
                     j++;
                     targetStation = $"{stationID}{j}";
-                    
-                }
-                // TODO: Implement sockets
-            }
 
+                }
+            }
         }
 
 
@@ -133,24 +135,22 @@ namespace LayoutModels
             if (!Pods.ContainsKey(target))
                 throw new NackResponse(NackCodes.TargetNotExist);
         }
-
         private void CheckStationExist(string target)
         {
             if (!Stations.ContainsKey(target))
                 throw new NackResponse(NackCodes.TargetNotExist);
         }
-
         private void CheckManipulatorExist(string target)
         {
             if (!Manipulators.ContainsKey(target))
                 throw new NackResponse(NackCodes.TargetNotExist);
         }
-
         private void CheckReaderExist(string target)
         {
             if (!Readers.ContainsKey(target))
                 throw new NackResponse(NackCodes.TargetNotExist);
         }
+
 
         private static string GetID(int length)
         {
@@ -160,17 +160,18 @@ namespace LayoutModels
             return val.ToString();
         }
 
+
         public void AddCommSpec(string commSpecName, CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec)
         {
             Translators[commSpecName] = new Translator(commStruct, ackStruct, respStruct, commSpec);
             Translators[commSpecName].OnLogEvent += OnSupportLogEvent;
         }
 
+
         public void ExecuteCommands_NewThread(string? command, string commSpecName)
         {
             new Thread(() => ExecuteCommands(command, commSpecName)).Start();
         }
-
         private void ExecuteCommands(string? commandString, string commSpecName)
         {
             List<Job> commands;
@@ -240,7 +241,6 @@ namespace LayoutModels
             OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponse(commands.Last(), ResponseTypes.Success, response));
             OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Success},{response}"));
         }
-
         public override Task<CommandReply> ExecuteCommand_GRPC(Job request, ServerCallContext context)
         {
             string response = string.Empty;
@@ -271,6 +271,7 @@ namespace LayoutModels
 
             return Task.FromResult(gRPCResponse);
         }
+
 
         private void CheckCommand(Job command, bool commandLock)
         {
@@ -404,18 +405,18 @@ namespace LayoutModels
 
 
                 case CommandTypes.Home:
-                    if (Manipulators.ContainsKey(command.Target))
+                    if (Manipulators.TryGetValue(command.Target, out Manipulator? manipulator))
                     {
-                        if (!Manipulators[command.Target].Power)
+                        if (!manipulator.Power)
                             throw new NackResponse(NackCodes.PowerOff);
-                        if (Manipulators[command.Target].Busy)
+                        if (manipulator.Busy)
                             throw new NackResponse(NackCodes.Busy);
                     }
-                    else if (Stations.ContainsKey(command.Target))
+                    else if (Stations.TryGetValue(command.Target, out Station? station))
                     {
-                        if (Stations[command.Target].Busy)
+                        if (station.Busy)
                             throw new NackResponse(NackCodes.Busy);
-                        if (!Stations[command.Target].HasDoor)
+                        if (!station.HasDoor)
                             throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
                     }
                     else
@@ -453,7 +454,6 @@ namespace LayoutModels
                     break;
             }
         }
-
         private string ExecuteCommand (Job command, string response)
         {
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Processing {command.Action} for {command.Target}"));
@@ -555,11 +555,11 @@ namespace LayoutModels
             return response;
         }
 
+
         private void OnSupportLogEvent(object? sender, Support.LogMessage e)
         {
             OnLogEvent?.Invoke(this, e);
         }
-
         private void OnSimulatorLogEvent(object? sender, LogMessage e)
         {
             OnLogEvent?.Invoke(this, e);

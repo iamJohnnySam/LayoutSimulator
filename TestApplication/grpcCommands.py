@@ -17,7 +17,7 @@ def run_commands():
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=3)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=1)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="A1", slot=1)))
-    asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorClose, target="L1")))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Door, target="L1", state=True)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Map, target="L1")))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Process0, target="A1")))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="A1", slot=1)))
@@ -32,21 +32,6 @@ def run_commands():
 
 
 
-    
-
-    job = command_pb2.Job(
-        action=command_pb2.Pick,
-        transactionID="12345",
-        target="Station1",
-        endEffector=1,
-        slot=2,
-        podID="POD123",
-        state=True,
-        capacity=10,
-        payloadType="TypeA",
-        targetStation="StationA"
-    )
- 
 
 async def execute(job):
     async with grpc.aio.insecure_channel('localhost:50051') as channel:

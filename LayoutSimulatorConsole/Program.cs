@@ -9,7 +9,6 @@ string? command = null;
 TCPServer server = new ("127.0.0.1", 8000);
 server.Start();
 
-
 Simulator simulator = new ("simulation1.xml");
 
 server.OnMessageReceived += Server_OnMessageReceived;
@@ -21,6 +20,9 @@ simulator.AddCommSpec("commonCommSpec",
     new ResponseStructure("<", ">", ",", 0, 1, -1, 2, 3, false, true, "valcmd"),
     new ResponseStructure("<", ">", ",", 0, 2, -1, 1, 3, false, true, ""),
     new UniversalCommSpec());
+Console.WriteLine($"Command Specification, commonCommSpec was added on port 8000");
+// Add more comm specs and ports if direct connection to any stations are required...
+
 
 Server grpcServer = new()
 {
@@ -46,7 +48,7 @@ void Simulator_OnLogEvent(object? sender, LayoutModels.Support.LogMessage e)
     Console.WriteLine($"{DateTime.Now} {e.transactionID}: {e.message}");
 }
 
-Console.WriteLine($"Listening to Commands through text input on Command Line...");
+Console.WriteLine($"Listening to Commands through text input on Command Line (Command Specificatio = commonCommSpec)...");
 while (true)
 {
     command = Console.ReadLine();
