@@ -23,12 +23,13 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="command_pb2.py" />
+    <Compile Include="command_pb2_grpc.py" />
     <Compile Include="grpcCommands.py" />
     <Compile Include="tcpCommands.py" />
     <Compile Include="TestApplication.py" />
   </ItemGroup>
   <ItemGroup>
-    <InterpreterReference Include="Global|PythonCore|3.10" />
     <InterpreterReference Include="Global|PythonCore|3.13" />
   </ItemGroup>
   <ItemGroup>

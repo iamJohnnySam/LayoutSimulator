@@ -34,8 +34,8 @@ class LayoutSimulatorStub(object):
         Args:
             channel: A grpc.Channel.
         """
-        self.ExecuteSimCommand = channel.unary_unary(
-                '/LayoutCommands.LayoutSimulator/ExecuteSimCommand',
+        self.ExecuteCommand_GRPC = channel.unary_unary(
+                '/LayoutCommands.LayoutSimulator/ExecuteCommand_GRPC',
                 request_serializer=command__pb2.Job.SerializeToString,
                 response_deserializer=command__pb2.CommandReply.FromString,
                 _registered_method=True)
@@ -44,7 +44,7 @@ class LayoutSimulatorStub(object):
 class LayoutSimulatorServicer(object):
     """Missing associated documentation comment in .proto file."""
 
-    def ExecuteSimCommand(self, request, context):
+    def ExecuteCommand_GRPC(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -53,8 +53,8 @@ class LayoutSimulatorServicer(object):
 
 def add_LayoutSimulatorServicer_to_server(servicer, server):
     rpc_method_handlers = {
-            'ExecuteSimCommand': grpc.unary_unary_rpc_method_handler(
-                    servicer.ExecuteSimCommand,
+            'ExecuteCommand_GRPC': grpc.unary_unary_rpc_method_handler(
+                    servicer.ExecuteCommand_GRPC,
                     request_deserializer=command__pb2.Job.FromString,
                     response_serializer=command__pb2.CommandReply.SerializeToString,
             ),
@@ -70,7 +70,7 @@ class LayoutSimulator(object):
     """Missing associated documentation comment in .proto file."""
 
     @staticmethod
-    def ExecuteSimCommand(request,
+    def ExecuteCommand_GRPC(request,
             target,
             options=(),
             channel_credentials=None,
@@ -83,7 +83,7 @@ class LayoutSimulator(object):
         return grpc.experimental.unary_unary(
             request,
             target,
-            '/LayoutCommands.LayoutSimulator/ExecuteSimCommand',
+            '/LayoutCommands.LayoutSimulator/ExecuteCommand_GRPC',
             command__pb2.Job.SerializeToString,
             command__pb2.CommandReply.FromString,
             options,

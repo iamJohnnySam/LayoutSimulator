@@ -56,7 +56,7 @@ async def execute(job):
         print()
         print(f"{t.strftime('%H:%M:%S')} : Command -> {job.action} | Target -> {job.target}.")
 
-        response = await stub.ExecuteSimCommand(job)
+        response = await stub.ExecuteCommand_GRPC(job)
 
         if response.responseType == 0:
             m = "ACK"

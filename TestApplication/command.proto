@@ -3,7 +3,7 @@ syntax = "proto3";
 package LayoutCommands;
 
 service LayoutSimulator {
-  rpc ExecuteSimCommand (Job) returns (CommandReply);
+  rpc ExecuteCommand_GRPC (Job) returns (CommandReply);
 }
 
 message Job {
