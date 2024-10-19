@@ -86,10 +86,14 @@ namespace LayoutModels
                 int retractTime = int.Parse(manipulator.Element("RetractTime")?.Value ?? "0");
                 int count = int.Parse(manipulator.Element("Count")?.Value ?? "0");
 
+#pragma warning disable IDE0028
+
                 Dictionary<int, Dictionary<string, Payload>> endEffectors = new();
                 int endEffector = 1;
                 foreach (string payload in endEffectorsTypes)
                     endEffectors.Add(endEffector++, new Dictionary<string, Payload>());
+
+#pragma warning restore IDE0028
 
                 for (int i = 0; i < count; i++)
                 {
