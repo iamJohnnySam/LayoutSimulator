@@ -10,59 +10,64 @@ namespace LayoutModels.CommSpecs
 {
     public class UniversalCommSpec : ICommSpec
     {
-        public Dictionary<String, List<CommandTypes>> CommandMap { get; set; } = new() 
-        {
-            { "ROBOTPICK", new List<CommandTypes> { CommandTypes.Pick } },
-            { "ROBOTPLACE", new List<CommandTypes> { CommandTypes.Place } },
-            { "LOAD", new List<CommandTypes> { CommandTypes.DoorOpen } },
-            { "UNLOAD", new List<CommandTypes> { CommandTypes.DoorClose } },
-            { "DOOROPEN", new List<CommandTypes> { CommandTypes.DoorOpen } },
-            { "DOORCLOSE", new List<CommandTypes> { CommandTypes.DoorClose } },
-            { "LOADANDMAP", new List<CommandTypes> { CommandTypes.Map } },
-            { "REMAP", new List<CommandTypes> { CommandTypes.DoorClose, CommandTypes.Map } },
-            { "DOCK", new List<CommandTypes> { CommandTypes.Dock } },
-            { "SDOCK", new List<CommandTypes> { CommandTypes.Sdock } },
-            { "UNDOCK", new List<CommandTypes> { CommandTypes.Undock } },
-            { "PROCESS", new List<CommandTypes> { CommandTypes.Process0 } },
-            { "ALIGN", new List<CommandTypes> { CommandTypes.Process1 } },
-            { "SERVOON", new List<CommandTypes> { CommandTypes.PowerOn } },
-            { "SERVOOFF", new List<CommandTypes> { CommandTypes.PowerOff } },
-            { "HOME", new List<CommandTypes> { CommandTypes.Home } },
-            { "READRFID", new List<CommandTypes> { CommandTypes.ReadPod } },
-            { "OCR", new List<CommandTypes> { CommandTypes.ReadSlot } },
-            { "POD", new List<CommandTypes> { CommandTypes.Pod } },
-            { "PAYLOAD", new List<CommandTypes> { CommandTypes.Payload } }
-        };
-        public Dictionary<String, List<CommandArgTypes>> CommandArgs { get; set; } = new() 
-        {
-            { "ROBOTPICK", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot } },
-            { "ROBOTPLACE", new List<CommandArgTypes> { CommandArgTypes.EndEffector, CommandArgTypes.TargetStation, CommandArgTypes.Slot } },
-            { "LOAD", new List<CommandArgTypes> { } },
-            { "UNLOAD", new List<CommandArgTypes> { } },
-            { "DOOROPEN", new List<CommandArgTypes> { } },
-            { "DOORCLOSE", new List<CommandArgTypes> { } },
-            { "LOADANDMAP", new List<CommandArgTypes> { } },
-            { "REMAP", new List<CommandArgTypes> { } },
-            { "DOCK", new List<CommandArgTypes> { } },
-            { "SDOCK", new List<CommandArgTypes> { CommandArgTypes.PodID } },
-            { "UNDOCK", new List<CommandArgTypes> { } },
-            { "PROCESS", new List<CommandArgTypes> { } },
-            { "ALIGN", new List<CommandArgTypes> { CommandArgTypes.Ignore } },
-            { "SERVOON", new List<CommandArgTypes> { } },
-            { "SERVOOFF", new List<CommandArgTypes> { } },
-            { "HOME", new List<CommandArgTypes> { } },
-            { "READRFID", new List<CommandArgTypes> { } },
-            { "OCR", new List<CommandArgTypes> { } },
-            { "POD", new List<CommandArgTypes> { CommandArgTypes.Capacity, CommandArgTypes.Type } },
-            { "PAYLOAD", new List<CommandArgTypes> { CommandArgTypes.PodID, CommandArgTypes.Slot} }
+        public Dictionary<String, List<CommandType>> CommandMap { get; set; } = new();
+        public Dictionary<String, List<CommandArgType>> CommandArgs { get; set; } = new();
+        public Dictionary<ResponseTypes, String> ResponseMap { get; set; } = new();
 
-        };
-        public Dictionary<ResponseTypes, String> ResponseMap { get; set; } = new() 
+        public UniversalCommSpec()
         {
-            { ResponseTypes.Ack, "ACK" },
-            { ResponseTypes.Nack, "NAK" },
-            { ResponseTypes.Success, "SUCCESS" },
-            { ResponseTypes.Error, "ERROR" }
-        };
+            CommandMap.Add("ROBOTPICK", new List<CommandType> { CommandType.Pick });
+            CommandMap.Add("ROBOTPLACE", new List<CommandType> { CommandType.Place });
+            CommandMap.Add("LOAD", new List<CommandType> { CommandType.DoorOpen });
+            CommandMap.Add("UNLOAD", new List<CommandType> { CommandType.DoorClose });
+            CommandMap.Add("DOOROPEN", new List<CommandType> { CommandType.DoorOpen });
+            CommandMap.Add("DOORCLOSE", new List<CommandType> { CommandType.DoorClose });
+            CommandMap.Add("LOADANDMAP", new List<CommandType> { CommandType.Map });
+            CommandMap.Add("REMAP", new List<CommandType> { CommandType.DoorClose, CommandType.Map });
+            CommandMap.Add("DOCK", new List<CommandType> { CommandType.Dock });
+            CommandMap.Add("SDOCK", new List<CommandType> { CommandType.Sdock });
+            CommandMap.Add("UNDOCK", new List<CommandType> { CommandType.Undock });
+            CommandMap.Add("PROCESS", new List<CommandType> { CommandType.Process0 });
+            CommandMap.Add("ALIGN", new List<CommandType> { CommandType.Process1 });
+            CommandMap.Add("SERVOON", new List<CommandType> { CommandType.PowerOn });
+            CommandMap.Add("SERVOOFF", new List<CommandType> { CommandType.PowerOff });
+            CommandMap.Add("HOME", new List<CommandType> { CommandType.Home });
+
+            CommandMap.Add("READRFID", new List<CommandType> { CommandType.ReadPod });
+            CommandMap.Add("OCR", new List<CommandType> { CommandType.ReadSlot });
+
+            CommandMap.Add("POD", new List<CommandType> { CommandType.Pod });
+            CommandMap.Add("PAYLOAD", new List<CommandType> { CommandType.Payload });
+           
+
+            CommandArgs.Add("ROBOTPICK", new List<CommandArgType> { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot });
+            CommandArgs.Add("ROBOTPLACE", new List<CommandArgType> { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot });
+            CommandArgs.Add("LOAD", new List<CommandArgType> { });
+            CommandArgs.Add("UNLOAD", new List<CommandArgType> { });
+            CommandArgs.Add("DOOROPEN", new List<CommandArgType> { });
+            CommandArgs.Add("DOORCLOSE", new List<CommandArgType> { });
+            CommandArgs.Add("LOADANDMAP", new List<CommandArgType> { });
+            CommandArgs.Add("REMAP", new List<CommandArgType> { });
+            CommandArgs.Add("DOCK", new List<CommandArgType> { });
+            CommandArgs.Add("SDOCK", new List<CommandArgType> { CommandArgType.PodID });
+            CommandArgs.Add("UNDOCK", new List<CommandArgType> { });
+            CommandArgs.Add("PROCESS", new List<CommandArgType> { });
+            CommandArgs.Add("ALIGN", new List<CommandArgType> { CommandArgType.Ignore });
+            CommandArgs.Add("SERVOON", new List<CommandArgType> { });
+            CommandArgs.Add("SERVOOFF", new List<CommandArgType> { });
+            CommandArgs.Add("HOME", new List<CommandArgType> { });
+
+            CommandArgs.Add("READRFID", new List<CommandArgType> { });
+            CommandArgs.Add("OCR", new List<CommandArgType> { });
+
+            CommandArgs.Add("POD", new List<CommandArgType> { CommandArgType.Capacity, CommandArgType.Type });
+            CommandArgs.Add("PAYLOAD", new List<CommandArgType> { CommandArgType.PodID, CommandArgType.Slot});
+
+
+            ResponseMap.Add(ResponseTypes.Ack, "ACK");
+            ResponseMap.Add(ResponseTypes.Nack, "NAK");
+            ResponseMap.Add(ResponseTypes.Success, "SUCCESS");
+            ResponseMap.Add(ResponseTypes.Error, "ERROR");
+        }
     }
 }

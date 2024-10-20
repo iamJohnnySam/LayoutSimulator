@@ -7,7 +7,7 @@ service LayoutSimulator {
 }
 
 message Job {
-  CommandTypes action = 1;
+  CommandType action = 1;
   string transactionID = 2;
   string target = 3;
   int32 endEffector = 4;
@@ -28,7 +28,7 @@ message CommandReply {
 }
 
 
-enum CommandTypes {
+enum CommandType {
     Pick = 0;
     Place = 1;
     Door = 2;

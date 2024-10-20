@@ -7,18 +7,14 @@ using System.Threading.Tasks;
 namespace LayoutModels.Support
 {
 
-    public enum CommandArgTypes
+    public enum CommandArgType
     {
         EndEffector,
         Slot,
         TargetStation,
         PodID,
         DoorStatus,
-        DoorOpen,
-        DoorClose,
         PowerStatus,
-        PowerOn,
-        PowerOff,
 
         Capacity,
         Type,

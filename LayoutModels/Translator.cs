@@ -9,28 +9,142 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Transactions;
 using LayoutCommands;
+using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Security.Cryptography;
 
 namespace LayoutModels
 {
-    public class Translator(CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec)
+    public static class CommandRequirement
+    {
+        public static Dictionary<CommandType, List<CommandArgType>> CommandDict = new()
+        {
+            { CommandType.Pick, new List<CommandArgType>() { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot } },
+            { CommandType.Place, new List<CommandArgType>() { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot } },
+            { CommandType.Door, new List<CommandArgType> () { CommandArgType.DoorStatus } },
+            { CommandType.DoorOpen, new List<CommandArgType>() { } },
+            { CommandType.DoorClose, new List<CommandArgType>() { } },
+            { CommandType.Map, new List<CommandArgType>() { } },
+            { CommandType.Dock, new List<CommandArgType>() { } },
+            { CommandType.Sdock, new List<CommandArgType>() { CommandArgType.PodID } },
+            { CommandType.Undock, new List<CommandArgType>() { } },
+            { CommandType.Process0, new List<CommandArgType>() { } },
+            { CommandType.Process1, new List<CommandArgType>() { } },
+            { CommandType.Process2, new List<CommandArgType>() { } },
+            { CommandType.Process3, new List<CommandArgType>() { } },
+            { CommandType.Process4, new List<CommandArgType>() { } },
+            { CommandType.Process5, new List<CommandArgType>() { } },
+            { CommandType.Process6, new List<CommandArgType>() { } },
+            { CommandType.Process7, new List<CommandArgType>() { } },
+            { CommandType.Process8, new List<CommandArgType>() { } },
+            { CommandType.Process9, new List<CommandArgType>() { } },
+            { CommandType.Power, new List<CommandArgType>() { CommandArgType.PowerStatus } },
+            { CommandType.PowerOn, new List<CommandArgType>() { } },
+            { CommandType.PowerOff, new List<CommandArgType>() { } },
+            { CommandType.Home, new List<CommandArgType>() { } },
+            { CommandType.ReadSlot, new List<CommandArgType>() { } },
+            { CommandType.ReadPod, new List<CommandArgType>() { } },
+            { CommandType.Pod, new List<CommandArgType>() { CommandArgType.Capacity, CommandArgType.Type } },
+            { CommandType.Payload, new List<CommandArgType>() { CommandArgType.PodID, CommandArgType.Slot } }
+        };
+    }
+
+    public class Translator
     {
         public event EventHandler<LogMessage>? OnLogEvent;
 
-        Dictionary<string, List<string>> commands = new();
-        public CommandStructure ComS { get; set; } = commStruct;
-        public ResponseStructure RspS { get; set; } = respStruct;
-        public ResponseStructure AckS { get; set; } = ackStruct;
-        public ICommSpec CommSpec { get; set; } = commSpec;
+        public CommandStructure ComS { get; set; }
+        public ResponseStructure RspS { get; set; }
+        public ResponseStructure AckS { get; set; }
+        public ICommSpec CommSpec { get; set; }
+        public List<string> AcceptedTargets { get; set; }
+        public bool AcceptAnyTarget { get; set; }
 
-        private List<CommandTypes> IgnoreTargetCommands = [ CommandTypes.Pod, CommandTypes.Payload ];
+        private List<CommandType> IgnoreTargetCommands = [ CommandType.Pod, CommandType.Payload ];
+
+        public Translator(CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec)
+        {
+            ComS = commStruct;
+            AckS = ackStruct;
+            RspS = respStruct;
+            CommSpec = commSpec;
+            AcceptedTargets = new ();
+            AcceptAnyTarget = true;
+        }
+
+        public Translator(CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec, List<string> acceptedTargets)
+        {
+            ComS = commStruct;
+            AckS = ackStruct;
+            RspS = respStruct;
+            CommSpec = commSpec;
+            AcceptedTargets = acceptedTargets;
+            AcceptAnyTarget = false;
+        }
 
 
-        private int GetIndex(CommandArgTypes value, List<CommandArgTypes> args)
+        private int GetIndex(CommandArgType value, List<CommandArgType> args)
         {
             int index = args.IndexOf(value);
             if (index == -1)
+            {
+                OnLogEvent?.Invoke(this, new LogMessage($"Number of arguments in command sent did not match number of arguments expected in Comm. Spec."));
                 throw new NackResponse(NackCodes.MissingArguments);
+            }
             return index;
+        }
+
+        private void AddArgumentsToCommand(Job job, CommandType command, List<string> receievedValues, string rawAction)
+        {
+            if (CommandRequirement.CommandDict.TryGetValue(command, out var argList))
+            {
+                foreach (var arg in argList)
+                {
+                    try
+                    {
+                        int index = GetIndex(arg, CommSpec.CommandArgs[rawAction]);
+
+                        switch (arg)
+                        {
+                            case CommandArgType.EndEffector:
+                                job.EndEffector = Int32.Parse(receievedValues[ComS.IndexValueStart + index]);
+                                break;
+
+                            case CommandArgType.TargetStation:
+                                job.TargetStation = receievedValues[ComS.IndexValueStart + index];
+                                break;
+
+                            case CommandArgType.Slot:
+                                job.Slot = Int32.Parse(receievedValues[ComS.IndexValueStart + index]);
+                                break;
+
+                            case CommandArgType.PodID:
+                                job.PodID = receievedValues[ComS.IndexValueStart + index];
+                                break;
+
+                            case CommandArgType.DoorStatus:
+                            case CommandArgType.PowerStatus:
+                                if (receievedValues[ComS.IndexValueStart + index] == "1")
+                                    job.State = true;
+                                else
+                                    job.State = false;
+                                break;
+
+                            case CommandArgType.Capacity:
+                                job.Capacity = Int32.Parse(receievedValues[ComS.IndexValueStart + index]);
+                                break;
+
+                            case CommandArgType.Type:
+                                job.PayloadType = receievedValues[ComS.IndexValueStart + index];
+                                break;
+
+                            case CommandArgType.Ignore:
+                                // Do nothing
+                                break;
+                        }
+                    }
+                    catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
+                }
+            }
         }
 
         public List<Job> TranslateCommand(string commandString)
@@ -63,8 +177,8 @@ namespace LayoutModels
             if (!CommSpec.CommandArgs.ContainsKey(rawAction))
                 throw new NackResponse(NackCodes.CommSpecError);
 
-            List<CommandTypes> commands = CommSpec.CommandMap[rawAction];
-            List<Job> runCommands = new List<Job>();
+            List<CommandType> commands = CommSpec.CommandMap[rawAction];
+            List<Job> runCommands = new ();
 
             if (commands.Count != 1 || !IgnoreTargetCommands.Contains(commands[0]))
                 if (vals.Count != (CommSpec.CommandArgs[rawAction].Count + ComS.IndexValueStart))
@@ -72,12 +186,14 @@ namespace LayoutModels
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Commands identified {commands.Count} command(s)."));
 
-            foreach (CommandTypes command in commands)
+            foreach (CommandType command in commands)
             {
-                Job runCommand = new();
-                runCommand.TransactionID = transactionID;
-                runCommand.RawAction = rawAction;
-                runCommand.RawCommand = rawCommand;
+                Job runCommand = new()
+                {
+                    TransactionID = transactionID,
+                    RawAction = rawAction,
+                    RawCommand = rawCommand,
+                };
 
                 if (!IgnoreTargetCommands.Contains(command))
                 {
@@ -86,100 +202,19 @@ namespace LayoutModels
                     else
                         runCommand.Target = ComS.FixedTarget ?? "P1";
                 }
+
+                if (!AcceptAnyTarget && !AcceptedTargets.Any(s => runCommand.Target.StartsWith(s)))
+                {
+                    OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Target for receieved Command {rawAction} is not in the allowed target list."));
+                    throw new NackResponse(NackCodes.CommandError);
+                }
                     
-                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Translating command {command.ToString()}."));
+                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Translating command {command}."));
                 runCommand.Action = command;
 
-                switch (command)
-                {
-                    case CommandTypes.Pick:
-                        try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawAction])]); }
-                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
+                AddArgumentsToCommand(runCommand, command, vals, rawAction);
 
-                        runCommand.TargetStation = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawAction])];
-
-                        try { runCommand.Slot = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]); }
-                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
-
-                        break;
-
-                    case CommandTypes.Place:
-                        try { runCommand.EndEffector = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.EndEffector, CommSpec.CommandArgs[rawAction])]); }
-                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
-
-                        runCommand.TargetStation = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.TargetStation, CommSpec.CommandArgs[rawAction])];
-
-                        try { runCommand.Slot = Int32.Parse(vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]); }
-                        catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
-
-                        break;
-
-                    case CommandTypes.Door:
-                        if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawAction])] == "0")
-                        {
-                            runCommand.State = false;
-                        }
-                        else if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.DoorStatus, CommSpec.CommandArgs[rawAction])] == "1")
-                        {
-                            runCommand.State = true;
-                        }
-                        else
-                        {
-                            try
-                            {
-                                GetIndex(CommandArgTypes.DoorOpen, CommSpec.CommandArgs[rawAction]);
-                                runCommand.State = false;
-                            }
-                            catch
-                            {
-                                GetIndex(CommandArgTypes.DoorClose, CommSpec.CommandArgs[rawAction]);
-                                runCommand.State = true;
-                            }
-                        }
-                        break;
-
-
-                    case CommandTypes.Sdock:
-                        runCommand.PodID = vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawAction])];
-                        break;
-
-                    case CommandTypes.Power:
-
-                        if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawAction])] == "0")
-                        {
-                            runCommand.State = false;
-                        }
-                        else if (vals[ComS.IndexValueStart + GetIndex(CommandArgTypes.PowerStatus, CommSpec.CommandArgs[rawAction])] == "1")
-                        {
-                            runCommand.State = true;
-                        }
-                        else
-                        {
-                            try
-                            {
-                                GetIndex(CommandArgTypes.PowerOff, CommSpec.CommandArgs[rawAction]);
-                                runCommand.State = false;
-                            }
-                            catch (NackResponse)
-                            {
-                                GetIndex(CommandArgTypes.PowerOn, CommSpec.CommandArgs[rawAction]);
-                                runCommand.State = true;
-                            }
-                        }
-                        break;
-
-                    case CommandTypes.Pod:
-                        runCommand.Capacity = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Capacity, CommSpec.CommandArgs[rawAction])]);
-                        runCommand.PayloadType = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Type, CommSpec.CommandArgs[rawAction])];
-                        break;
-
-                    case CommandTypes.Payload:
-                        runCommand.PodID = vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.PodID, CommSpec.CommandArgs[rawAction])];
-                        runCommand.Slot = int.Parse(vals[ComS.IndexValueStart - 1 + GetIndex(CommandArgTypes.Slot, CommSpec.CommandArgs[rawAction])]);
-                        break;
-
-                }
-                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Added Command {runCommand.Action.ToString()} to list (Target = {runCommand.Target})."));
+                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Added Command {runCommand.Action} to list (Target = {runCommand.Target})."));
                 runCommands.Add(runCommand);
             }
             return runCommands;

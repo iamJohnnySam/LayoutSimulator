@@ -10,8 +10,8 @@ namespace LayoutModels.CommSpecs
 {
     public interface ICommSpec
     {
-        Dictionary<String, List<CommandTypes>> CommandMap { get; set; }
-        Dictionary<String, List<CommandArgTypes>> CommandArgs { get; set; }
+        Dictionary<String, List<CommandType>> CommandMap { get; set; }
+        Dictionary<String, List<CommandArgType>> CommandArgs { get; set; }
         public Dictionary<ResponseTypes, String> ResponseMap { get; set; }
     }
 }

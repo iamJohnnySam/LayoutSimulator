@@ -282,7 +282,7 @@ namespace LayoutModels
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Checking {command.Action} for {command.Target}"));
             switch (command.Action)
             {
-                case CommandTypes.Pick:
+                case CommandType.Pick:
                     CheckManipulatorExist(command.Target);
                     CheckStationExist(command.TargetStation);
 
@@ -295,7 +295,7 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.Place:
+                case CommandType.Place:
                     CheckManipulatorExist(command.Target);
                     CheckStationExist(command.TargetStation);
 
@@ -308,7 +308,7 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.Door:
+                case CommandType.Door:
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
@@ -319,19 +319,7 @@ namespace LayoutModels
                         throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
                     break;
 
-                case CommandTypes.DoorOpen:
-                    CheckStationExist(command.Target);
-
-                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
-                    if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
-                    if (!Stations[command.Target].HasDoor)
-                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
-                    break;
-
-
-                case CommandTypes.DoorClose:
+                case CommandType.DoorOpen:
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
@@ -343,7 +331,19 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.Map:
+                case CommandType.DoorClose:
+                    CheckStationExist(command.Target);
+
+                    if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
+                        throw new NackResponse(NackCodes.CommandError);
+                    if (Stations[command.Target].Busy)
+                        throw new NackResponse(NackCodes.Busy);
+                    if (!Stations[command.Target].HasDoor)
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                    break;
+
+
+                case CommandType.Map:
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
@@ -355,7 +355,7 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.Dock:
+                case CommandType.Dock:
                     if(command.PodID.Length == 0)
                         command.PodID = Pods.Keys.Last();
 
@@ -371,7 +371,7 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.Undock:
+                case CommandType.Undock:
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
@@ -382,16 +382,16 @@ namespace LayoutModels
                         throw new NackResponse(NackCodes.NotDockable);
                     break;
 
-                case CommandTypes.Process0:
-                case CommandTypes.Process1:
-                case CommandTypes.Process2:
-                case CommandTypes.Process3:
-                case CommandTypes.Process4:
-                case CommandTypes.Process5:
-                case CommandTypes.Process6:
-                case CommandTypes.Process7:
-                case CommandTypes.Process8:
-                case CommandTypes.Process9:
+                case CommandType.Process0:
+                case CommandType.Process1:
+                case CommandType.Process2:
+                case CommandType.Process3:
+                case CommandType.Process4:
+                case CommandType.Process5:
+                case CommandType.Process6:
+                case CommandType.Process7:
+                case CommandType.Process8:
+                case CommandType.Process9:
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
@@ -401,14 +401,14 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.Power:
-                case CommandTypes.PowerOn:
-                case CommandTypes.PowerOff:
+                case CommandType.Power:
+                case CommandType.PowerOn:
+                case CommandType.PowerOff:
                     CheckManipulatorExist(command.Target);
                     break;
 
 
-                case CommandTypes.Home:
+                case CommandType.Home:
                     if (Manipulators.TryGetValue(command.Target, out Manipulator? manipulator))
                     {
                         if (!manipulator.Power)
@@ -430,17 +430,17 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.ReadPod:
-                case CommandTypes.ReadSlot:
+                case CommandType.ReadPod:
+                case CommandType.ReadSlot:
                     CheckReaderExist(command.Target);
                     break;
 
 
-                case CommandTypes.Pod:
+                case CommandType.Pod:
                     break;
 
 
-                case CommandTypes.Payload:
+                case CommandType.Payload:
                     if (command.PodID.Length == 0) 
                         command.PodID = Pods.Keys.Last();
 
@@ -463,71 +463,71 @@ namespace LayoutModels
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Processing {command.Action} for {command.Target}"));
             switch (command.Action)
             {
-                case CommandTypes.Pick:
+                case CommandType.Pick:
                     Manipulators[command.Target].Pick(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
                     break;
 
-                case CommandTypes.Place:
+                case CommandType.Place:
                     Manipulators[command.Target].Place(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
                     break;
 
-                case CommandTypes.Door:
+                case CommandType.Door:
                     Stations[command.Target].Door(command.TransactionID, command.State);
                     break;
 
-                case CommandTypes.DoorOpen:
+                case CommandType.DoorOpen:
                     Stations[command.Target].Door(command.TransactionID, false);
                     break;
 
 
-                case CommandTypes.DoorClose:
+                case CommandType.DoorClose:
                     Stations[command.Target].Door(command.TransactionID, true);
                     break;
 
-                case CommandTypes.Map:
+                case CommandType.Map:
                     List<int> mapData = Stations[command.Target].OpenDoorAndMap(command.TransactionID).Cast<int>().ToList();
                     response = string.Join("", mapData);
                     break;
 
-                case CommandTypes.Dock:
+                case CommandType.Dock:
                     Stations[command.Target].Dock(command.TransactionID, Pods[command.PodID]);
                     Pods.Remove(command.PodID);
                     break;
 
-                case CommandTypes.Undock:
+                case CommandType.Undock:
                     Pod outgoingPod = Stations[command.Target].UnDock(command.TransactionID);
                     Pods.Add(outgoingPod.PodID, outgoingPod);
                     break;
 
-                case CommandTypes.Process0:
-                case CommandTypes.Process1:
-                case CommandTypes.Process2:
-                case CommandTypes.Process3:
-                case CommandTypes.Process4:
-                case CommandTypes.Process5:
-                case CommandTypes.Process6:
-                case CommandTypes.Process7:
-                case CommandTypes.Process8:
-                case CommandTypes.Process9:
+                case CommandType.Process0:
+                case CommandType.Process1:
+                case CommandType.Process2:
+                case CommandType.Process3:
+                case CommandType.Process4:
+                case CommandType.Process5:
+                case CommandType.Process6:
+                case CommandType.Process7:
+                case CommandType.Process8:
+                case CommandType.Process9:
                     Stations[command.Target].Process(command.TransactionID);
                     break;
 
-                case CommandTypes.Power:
+                case CommandType.Power:
                     if (command.State)
                         Manipulators[command.Target].PowerOn(command.TransactionID);
                     else
                         Manipulators[command.Target].PowerOff(command.TransactionID);
                     break;
 
-                case CommandTypes.PowerOn:
+                case CommandType.PowerOn:
                     Manipulators[command.Target].PowerOn(command.TransactionID);
                     break;
 
-                case CommandTypes.PowerOff:
+                case CommandType.PowerOff:
                     Manipulators[command.Target].PowerOff(command.TransactionID);
                     break;
 
-                case CommandTypes.Home:
+                case CommandType.Home:
                     if (Manipulators.TryGetValue(command.Target, out Manipulator? manipulator))
                         manipulator.Home(command.TransactionID);
                     else if (Stations.TryGetValue(command.Target, out Station? station))
@@ -537,19 +537,19 @@ namespace LayoutModels
                     break;
 
 
-                case CommandTypes.ReadPod:
-                case CommandTypes.ReadSlot:
+                case CommandType.ReadPod:
+                case CommandType.ReadSlot:
                     response = Readers[command.Target].ReadID(command.TransactionID);
                     break;
 
-                case CommandTypes.Pod:
+                case CommandType.Pod:
                     string podID = GetID(5);
                     Pods.Add(podID, new Pod(podID, command.Capacity, command.PayloadType));
                     response = podID;
                     OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Pod {podID}."));
                     break;
 
-                case CommandTypes.Payload:
+                case CommandType.Payload:
                     string payloadID = GetID(5);
                     Pods[command.PodID].slots[command.Slot] = new Payload(payloadID, Pods[command.PodID].PayloadType);
                     response = payloadID;

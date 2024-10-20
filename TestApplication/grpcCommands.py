@@ -25,10 +25,10 @@ def run_commands():
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="P1", slot=1)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorClose, target="P1")))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Process0, target="P1")))
-    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=2)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=1, targetStation="L1", slot=5)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.DoorOpen, target="P1")))
-    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=2, targetStation="P1", slot=2)))
-    asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="P1", slot=2)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Pick, target="R1", endEffector=2, targetStation="P1", slot=1)))
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.Place, target="R1", endEffector=1, targetStation="P1", slot=1)))
 
 
 
