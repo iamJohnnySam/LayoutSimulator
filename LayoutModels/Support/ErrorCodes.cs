@@ -8,6 +8,7 @@ namespace LayoutModels.Support
 {
     public enum ErrorCodes
     {
+        SimulatorStopped,
         ProgramError,
         PodAlreadyAvailable,
         PodNotAvailable,
@@ -25,6 +26,7 @@ namespace LayoutModels.Support
     }
     public enum NackCodes
     {
+        SimulatorNotStarted,
         CommSpecError,
         CommandError,
         TargetNotExist,

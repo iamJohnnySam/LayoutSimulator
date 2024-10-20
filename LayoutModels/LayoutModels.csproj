@@ -13,6 +13,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <ProjectReference Include="..\Communicator\Communicator.csproj" />
 	<Protobuf Include="proto\command.proto" GrpcServices="Server" />
   </ItemGroup>
 

@@ -30,7 +30,17 @@ namespace LayoutModels
 
 #pragma warning restore IDE0028
 
-        public SimulatorStates State { get; set; } = SimulatorStates.Uninitialized;
+        private SimulatorState simState = SimulatorState.Stopped;
+        public SimulatorState State {
+            get 
+            {
+                return simState;
+            }
+            set
+            {
+                simState = value;
+                OnLogEvent?.Invoke(this, new LogMessage($"Simulator State has changed to {value}."));
+            } } 
         // TODO: Simulator States
 
 
@@ -280,6 +290,10 @@ namespace LayoutModels
         private void CheckCommand(Job command, bool commandLock)
         {
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Checking {command.Action} for {command.Target}"));
+
+            if (State != SimulatorState.ListeningCommands)
+                throw new NackResponse(NackCodes.SimulatorNotStarted);
+
             switch (command.Action)
             {
                 case CommandType.Pick:
@@ -460,6 +474,14 @@ namespace LayoutModels
         }
         private string ExecuteCommand (Job command, string response)
         {
+            while (State == SimulatorState.Paused)
+            {
+                Thread.Sleep(100);
+            }
+
+            if (State == SimulatorState.Paused)
+                throw new ErrorResponse(ErrorCodes.SimulatorStopped);
+
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Processing {command.Action} for {command.Target}"));
             switch (command.Action)
             {
@@ -554,6 +576,19 @@ namespace LayoutModels
                     Pods[command.PodID].slots[command.Slot] = new Payload(payloadID, Pods[command.PodID].PayloadType);
                     response = payloadID;
                     OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {command.PodID} at slot {command.Slot}."));
+                    break;
+
+                case CommandType.StartSim:
+                case CommandType.ResumeSim:
+                    State = SimulatorState.ListeningCommands;
+                    break;
+
+                case CommandType.StopSim:
+                    State = SimulatorState.Stopped;
+                    break;
+
+                case CommandType.PauseSim:
+                    State = SimulatorState.Paused;
                     break;
             }
             return response;

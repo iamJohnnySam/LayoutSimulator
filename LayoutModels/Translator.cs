@@ -59,7 +59,14 @@ namespace LayoutModels
         public List<string> AcceptedTargets { get; set; }
         public bool AcceptAnyTarget { get; set; }
 
-        private List<CommandType> IgnoreTargetCommands = [ CommandType.Pod, CommandType.Payload ];
+        private readonly List<CommandType> IgnoreTargetCommands = [ 
+            CommandType.Pod, 
+            CommandType.Payload,
+            CommandType.StartSim,
+            CommandType.StopSim,
+            CommandType.PauseSim,
+            CommandType.ResumeSim,
+            ];
 
         public Translator(CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec)
         {
@@ -91,6 +98,41 @@ namespace LayoutModels
                 throw new NackResponse(NackCodes.MissingArguments);
             }
             return index;
+        }
+
+        private void DecodeCommands(List<CommandType> commands, string transactionID, string rawAction, string rawCommand, List<Job> runCommands, List<string> recievedValues)
+        {
+            foreach (CommandType command in commands)
+            {
+                Job runCommand = new()
+                {
+                    TransactionID = transactionID,
+                    RawAction = rawAction,
+                    RawCommand = rawCommand,
+                };
+
+                if (!IgnoreTargetCommands.Contains(command))
+                {
+                    if (!ComS.DedicatedPort)
+                        runCommand.Target = recievedValues[ComS.IndexTarget];
+                    else
+                        runCommand.Target = ComS.FixedTarget ?? "P1";
+                }
+
+                if (!AcceptAnyTarget && !AcceptedTargets.Any(s => runCommand.Target.StartsWith(s)))
+                {
+                    OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Target for receieved Command {rawAction} is not in the allowed target list."));
+                    throw new NackResponse(NackCodes.CommandError);
+                }
+
+                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Translating command {command}."));
+                runCommand.Action = command;
+
+                AddArgumentsToCommand(runCommand, command, recievedValues, rawAction);
+
+                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Added Command {runCommand.Action} to list (Target = {runCommand.Target})."));
+                runCommands.Add(runCommand);
+            }
         }
 
         private void AddArgumentsToCommand(Job job, CommandType command, List<string> receievedValues, string rawAction)
@@ -145,6 +187,10 @@ namespace LayoutModels
                     catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
                 }
             }
+            else
+            {
+                // Pass
+            }
         }
 
         public List<Job> TranslateCommand(string commandString)
@@ -186,37 +232,8 @@ namespace LayoutModels
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Commands identified {commands.Count} command(s)."));
 
-            foreach (CommandType command in commands)
-            {
-                Job runCommand = new()
-                {
-                    TransactionID = transactionID,
-                    RawAction = rawAction,
-                    RawCommand = rawCommand,
-                };
+            DecodeCommands(commands, transactionID, rawAction, rawCommand, runCommands, vals);
 
-                if (!IgnoreTargetCommands.Contains(command))
-                {
-                    if (!ComS.DedicatedPort)
-                        runCommand.Target = vals[ComS.IndexTarget];
-                    else
-                        runCommand.Target = ComS.FixedTarget ?? "P1";
-                }
-
-                if (!AcceptAnyTarget && !AcceptedTargets.Any(s => runCommand.Target.StartsWith(s)))
-                {
-                    OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Target for receieved Command {rawAction} is not in the allowed target list."));
-                    throw new NackResponse(NackCodes.CommandError);
-                }
-                    
-                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Translating command {command}."));
-                runCommand.Action = command;
-
-                AddArgumentsToCommand(runCommand, command, vals, rawAction);
-
-                OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Added Command {runCommand.Action} to list (Target = {runCommand.Target})."));
-                runCommands.Add(runCommand);
-            }
             return runCommands;
 
             // TODO: Checksum

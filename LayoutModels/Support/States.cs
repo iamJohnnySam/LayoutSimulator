@@ -20,10 +20,11 @@ namespace LayoutModels.Support
         retracted
     }
 
-    public enum SimulatorStates
+    public enum SimulatorState
     {
-        Initialized,
+        ListeningCommands,
+        Stopped,
         AutoRun,
-        Uninitialized
+        Paused,
     }
 }

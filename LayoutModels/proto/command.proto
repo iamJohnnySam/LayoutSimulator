@@ -58,6 +58,11 @@ enum CommandType {
 
     Pod = 25;
     Payload = 26;
+
+    StartSim = 28;
+    StopSim = 29;
+    PauseSim = 30;
+    ResumeSim = 40;
 }
 
 enum ResponseTypes{

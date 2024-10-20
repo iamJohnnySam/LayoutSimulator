@@ -6,6 +6,7 @@ from datetime import datetime
 
 def run_commands():
 
+    asyncio.run(execute(command_pb2.Job(action = command_pb2.StartSim)))
     pod = asyncio.run(execute(command_pb2.Job(action = command_pb2.Pod, capacity=25, payloadType="payload")))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Payload, slot=1)))
     asyncio.run(execute(command_pb2.Job(action = command_pb2.Payload, slot=5)))
