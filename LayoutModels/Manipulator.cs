@@ -15,9 +15,9 @@ namespace LayoutModels
 
         public Dictionary<int, Dictionary<string, Payload>> EndEffectors { get; private set; }
         public List<string> EndEffectorTypes { get; set; }
-        public int MotionTime { get; private set; }
-        public int ExtendTime { get; private set; }
-        public int RetractTime { get; private set; }
+        public float MotionTime { get; private set; }
+        public float ExtendTime { get; private set; }
+        public float RetractTime { get; private set; }
         public ManipulatorArmStates ArmState { get; private set; } = ManipulatorArmStates.retracted;
         public string CurrentLocation { get; private set; } = "home";
 
@@ -34,7 +34,7 @@ namespace LayoutModels
         }
 
 
-        public Manipulator(string manipulatorID, Dictionary<int, Dictionary<string, Payload>> endEffectors, List<string> endEffectorsTypes, List<string> locations, int motionTime, int extendTime, int retractTime)
+        public Manipulator(string manipulatorID, Dictionary<int, Dictionary<string, Payload>> endEffectors, List<string> endEffectorsTypes, List<string> locations, float motionTime, float extendTime, float retractTime)
         {
             StationID = manipulatorID;
             EndEffectors = endEffectors;
@@ -49,20 +49,20 @@ namespace LayoutModels
         {
             if (CurrentLocation != stationID)
             {
-                TimeKeeper.ProcessWait(MotionTime);
+                ProcessWait(MotionTime);
                 CurrentLocation = stationID;
             }
         }
 
         private void Extend()
         {
-            TimeKeeper.ProcessWait(ExtendTime);
+            ProcessWait(ExtendTime);
             ArmState = ManipulatorArmStates.extended;
         }
 
         private void Retract()
         {
-            TimeKeeper.ProcessWait(RetractTime);
+            ProcessWait(RetractTime);
             ArmState = ManipulatorArmStates.retracted;
         }
 

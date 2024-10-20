@@ -66,9 +66,9 @@ namespace LayoutModels
                 int capacity = int.Parse(station.Element("Capacity")?.Value ?? "2");
                 List<string> locations = (station.Element("Locations")?.Value ?? "location").Split(',').Select(loc => loc.Trim()).ToList();
                 bool processable = station.Element("Processable")?.Value == "1";
-                int processTime = int.Parse(station.Element("ProcessTime")?.Value ?? "5");
+                float processTime = float.Parse(station.Element("ProcessTime")?.Value ?? "5");
                 bool hasDoor = station.Element("HasDoor")?.Value == "1";
-                int doorTransitionTime = int.Parse(station.Element("DoorTransitionTime")?.Value ?? "5");
+                float doorTransitionTime = float.Parse(station.Element("DoorTransitionTime")?.Value ?? "5");
                 bool podDockable = station.Element("PodDockable")?.Value == "1";
                 List<string> acceptedCommands = (station.Element("AcceptedCommands")?.Value ?? "").Split(',').Select(loc => loc.Trim()).ToList();
                 int count = int.Parse(station.Element("Count")?.Value ?? "1");
@@ -91,9 +91,9 @@ namespace LayoutModels
                 string identifier = manipulator.Element("Identifier")?.Value ?? "R";
                 List<string> endEffectorsTypes = (manipulator.Element("EndEffectors")?.Value ?? "payload").Split(',').Select(loc => loc.Trim()).ToList();
                 List<string> locations = (manipulator.Element("Locations")?.Value ?? "location").Split(',').Select(loc => loc.Trim()).ToList();
-                int motionTime = int.Parse(manipulator.Element("MotionTime")?.Value ?? "0");
-                int extendTime = int.Parse(manipulator.Element("ExtendTime")?.Value ?? "0");
-                int retractTime = int.Parse(manipulator.Element("RetractTime")?.Value ?? "0");
+                float motionTime = float.Parse(manipulator.Element("MotionTime")?.Value ?? "0");
+                float extendTime = float.Parse(manipulator.Element("ExtendTime")?.Value ?? "0");
+                float retractTime = float.Parse(manipulator.Element("RetractTime")?.Value ?? "0");
                 int count = int.Parse(manipulator.Element("Count")?.Value ?? "0");
 
 #pragma warning disable IDE0028
@@ -291,7 +291,7 @@ namespace LayoutModels
         {
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Checking {command.Action} for {command.Target}"));
 
-            if (State != SimulatorState.ListeningCommands)
+            if (State != SimulatorState.ListeningCommands && command.Action != CommandType.StartSim)
                 throw new NackResponse(NackCodes.SimulatorNotStarted);
 
             switch (command.Action)

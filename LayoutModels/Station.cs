@@ -43,9 +43,9 @@ namespace LayoutModels
         public string OutputState { get; set; }
         public int Capacity { get; private set; }
         public bool Processable { get; private set; }
-        public int ProcessTime { get; set; }
+        public float ProcessTime { get; set; }
         public bool HasDoor { get; private set; }
-        public int DoorTransitionTime { get; private set; }
+        public float DoorTransitionTime { get; private set; }
         public bool PodDockable { get; private set; }
         
         private string? podID = null;
@@ -82,7 +82,7 @@ namespace LayoutModels
 
         public List<string> AcceptedCommands { get; set; }
 
-        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, List<string> locations, bool processable, int processTime, bool hasDoor, int doorTransitionTime, bool podDockable, List<string> acceptedCommands)
+        public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, List<string> locations, bool processable, float processTime, bool hasDoor, float doorTransitionTime, bool podDockable, List<string> acceptedCommands)
         {
             StationID = stationID;
             PayloadType = payloadType;
@@ -230,14 +230,14 @@ namespace LayoutModels
             {
                 OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closing."));
                 State = StationState.Closing;
-                TimeKeeper.ProcessWait(DoorTransitionTime);
+                ProcessWait(DoorTransitionTime);
                 State = StationState.Closed;
                 OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Closed."));
             }
             else if (!requestedStatus && State == StationState.Closed) {
                 OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Opening."));
                 State = StationState.Opening;
-                TimeKeeper.ProcessWait(DoorTransitionTime);
+                ProcessWait(DoorTransitionTime);
                 State = StationState.Open;
                 OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Open."));
             }
@@ -256,7 +256,7 @@ namespace LayoutModels
 
             Busy = true;
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} Process Started."));
-            TimeKeeper.ProcessWait(ProcessTime);
+            ProcessWait(ProcessTime);
 
             foreach(KeyValuePair<int, Payload> slot in slots)
             {
@@ -280,7 +280,7 @@ namespace LayoutModels
             Busy = true;
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} door Mapping."));
             State = StationState.Mapping;
-            TimeKeeper.ProcessWait(DoorTransitionTime);
+            ProcessWait(DoorTransitionTime);
             List<MapCodes> slotMap = GetMap();
             State = StationState.Open;
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Station {StationID} was mapped."));

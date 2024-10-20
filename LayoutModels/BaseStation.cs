@@ -17,6 +17,12 @@ namespace LayoutModels
         public bool EnablePassThrough { get; set; } = false;
         TCPClient? PassThroughClient;
 
+        public void ProcessWait(float SecsTime)
+        {
+            if (!EnablePassThrough)
+               Thread.Sleep((int)(SecsTime * 1000));
+        }
+
 
         public void EnablePassthrough(string ipAddress, int port)
         {

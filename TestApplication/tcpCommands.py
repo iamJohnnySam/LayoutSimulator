@@ -5,6 +5,7 @@ from datetime import datetime
 
 
 commands = [
+    ("<000,START>\r\n", True, 2),
     ("<001,POD,25,payload>\r\n", True, 2),
     ("<002,PAYLOAD,,1>\r\n", True, 2),
     ("<003,PAYLOAD,,5>\r\n", True, 2),
