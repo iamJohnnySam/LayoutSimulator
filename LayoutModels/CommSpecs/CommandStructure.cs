@@ -6,32 +6,93 @@ using System.Threading.Tasks;
 
 namespace LayoutModels.CommSpecs
 {
-    public struct CommandStructure (bool dedicatedPort, string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, string fixedTarget, int indexValueStart, bool checkSum)
+    public struct CommandStructure
     {
-        public bool DedicatedPort { get; set; } = dedicatedPort;
-        public string StartCharacter { get; set; } = startChar;
-        public string EndCharacter { get; set;} = endChar;
-        public string Delimiter { get; set;} = delimiter;
-        public int IndexTransaction { get; set; } = indexTransaction;
-        public int IndexCommand { get; set; } = indexCommand;
-        public int IndexTarget { get; set; } = indexTarget;
-        public string FixedTarget { get; set; } = fixedTarget;
-        public int IndexValueStart { get; set;} = indexValueStart;
-        public bool CheckSum { get; set; } = checkSum;
+        public bool DedicatedPort { get; set; } 
+        public string StartCharacter { get; set; }
+        public string EndCharacter { get; set;}
+        public string Delimiter { get; set;} 
+        public int IndexTransaction { get; set; } 
+        public int IndexCommand { get; set; } 
+        public int IndexTarget { get; set; } 
+        public string FixedTarget { get; set; } 
+        public int IndexValueStart { get; set;} 
+        public bool CheckSum { get; set; }
+        public bool CRLF { get; set; }
+
+        public CommandStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, int indexValueStart, bool checkSum, bool cRLF)
+        {
+            DedicatedPort = false;
+            StartCharacter = startChar;
+            EndCharacter = endChar;
+            Delimiter = delimiter;
+            IndexTransaction = indexTransaction;
+            IndexCommand = indexCommand;
+            IndexTarget = indexTarget;
+            FixedTarget = string.Empty;
+            IndexValueStart = indexValueStart;
+            CheckSum = checkSum;
+            CRLF = cRLF;
+        }
+
+        public CommandStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, string fixedTarget, int indexValueStart, bool checkSum, bool cRLF)
+        {
+            DedicatedPort = true;
+            StartCharacter = startChar;
+            EndCharacter = endChar;
+            Delimiter = delimiter;
+            IndexTransaction = indexTransaction;
+            IndexCommand = indexCommand;
+            IndexTarget = -1;
+            FixedTarget = fixedTarget;
+            IndexValueStart = indexValueStart;
+            CheckSum = checkSum;
+            CRLF = cRLF;
+        }
     }
 
-    public struct ResponseStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexMessage, int indexTarget, int originalCommandIndex, int indexResponseStart, bool checkSum, bool cRLF, string injectAckResponse)
+    public struct ResponseStructure
     {
-        public string StartCharacter { get; set; } = startChar;
-        public string EndCharacter { get; set; } = endChar;
-        public string Delimiter { get; set; } = delimiter;
-        public int IndexTransaction { get; set; } = indexTransaction;
-        public int IndexMessage { get; set; } = indexMessage;
-        public int IndexTarget { get; set; } = indexTarget;
-        public int OriginalCommandIndex { get; set; } = originalCommandIndex;
-        public int IndexResponseStart { get; set; } = indexResponseStart;
-        public bool CheckSum { get; set; } = checkSum;
-        public bool CRLF { get; set; } = cRLF;
-        public string InjectAckResponse { get; set; } = injectAckResponse;
+        public string StartCharacter { get; set; }
+        public string EndCharacter { get; set; }
+        public string Delimiter { get; set; }
+        public int IndexTransaction { get; set; }
+        public int IndexMessage { get; set; }
+        public int IndexTarget { get; set; }
+        public int OriginalCommandIndex { get; set; }
+        public int IndexResponseStart { get; set; }
+        public bool CheckSum { get; set; }
+        public bool CRLF { get; set; }
+        public string InjectAckResponse { get; set; }
+
+        public ResponseStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexMessage, int indexTarget, int originalCommandIndex, int indexResponseStart, bool checkSum, bool cRLF, string injectAckResponse)
+        {
+            StartCharacter = startChar;
+            EndCharacter = endChar;
+            Delimiter = delimiter;
+            IndexTransaction = indexTransaction;
+            IndexMessage = indexMessage;
+            IndexTarget = indexTarget;
+            OriginalCommandIndex = originalCommandIndex;
+            IndexResponseStart = indexResponseStart;
+            CheckSum = checkSum;
+            CRLF = cRLF;
+            InjectAckResponse = injectAckResponse;
+        }
+
+        public ResponseStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexMessage, int indexTarget, int originalCommandIndex, int indexResponseStart, bool checkSum, bool cRLF)
+        {
+            StartCharacter = startChar;
+            EndCharacter = endChar;
+            Delimiter = delimiter;
+            IndexTransaction = indexTransaction;
+            IndexMessage = indexMessage;
+            IndexTarget = indexTarget;
+            OriginalCommandIndex = originalCommandIndex;
+            IndexResponseStart = indexResponseStart;
+            CheckSum = checkSum;
+            CRLF = cRLF;
+            InjectAckResponse = string.Empty;
+        }
     }
 }

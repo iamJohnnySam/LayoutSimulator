@@ -10,16 +10,21 @@ message Job {
   CommandType action = 1;
   string transactionID = 2;
   string target = 3;
-  int32 endEffector = 4;
-  int32 slot = 5;
-  string podID = 6;
-  bool state = 7;
-  int32 capacity = 8;
-  string payloadType = 9;
-  string targetStation = 10;
 
-  string rawAction = 11;
-  string rawCommand = 12;
+  map<int32, string> arguments = 4;
+
+  string rawAction = 5;
+  string rawCommand = 6;
+
+  /*
+  int32 endEffector = 7;
+  int32 slot = 8;
+  string podID = 9;
+  bool state = 10;
+  int32 capacity = 11;
+  string payloadType = 12;
+  string targetStation = 13;
+  */
 }
 
 message CommandReply {
@@ -63,6 +68,20 @@ enum CommandType {
     StopSim = 29;
     PauseSim = 30;
     ResumeSim = 40;
+}
+
+enum CommandArgType{
+    EndEffector = 0;
+    Slot = 1;
+    TargetStation = 2;
+    PodID = 3;
+    DoorStatus = 4;
+    PowerStatus = 5;
+
+    Capacity = 6;
+    Type = 7;
+
+    Ignore = 8;
 }
 
 enum ResponseTypes{

@@ -16,7 +16,7 @@ simulator.OnLogEvent += Simulator_OnLogEvent;
 simulator.OnResponseEvent += Simulator_OnErrorEvent;
 
 simulator.AddCommSpec("commonCommSpec",
-    new CommandStructure(false, "<", ">", ",:", 0, 1, 2, string.Empty, 3, false),
+    new CommandStructure("<", ">", ",:", 0, 1, 2, 3, false, true),
     new ResponseStructure("<", ">", ",", 0, 1, -1, 2, 3, false, true, "valcmd"),
     new ResponseStructure("<", ">", ",", 0, 2, -1, 1, 3, false, true, ""),
     new UniversalCommSpec());

@@ -11,14 +11,18 @@ namespace LayoutModels
     {
         public event EventHandler<LogMessage>? Log;
 
-        public Payload(string payloadID, string payloadType)
+        public Payload(string payloadID, string payloadType, string lotID, int slot)
         {
             PayloadID = payloadID;
             PayloadType = payloadType;
+            LotID = lotID;
+            Slot = slot;
         }
 
         public string PayloadID { get; set; }
         public string PayloadType { get; private set; }
+        public string LotID { get; set; }
+        public int Slot { get; set; }
 
         private bool payloadErrorStaus = false;
         public bool PayloadErrorStaus {

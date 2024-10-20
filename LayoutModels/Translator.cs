@@ -25,7 +25,7 @@ namespace LayoutModels
             { CommandType.DoorClose, new List<CommandArgType>() { } },
             { CommandType.Map, new List<CommandArgType>() { } },
             { CommandType.Dock, new List<CommandArgType>() { } },
-            { CommandType.Sdock, new List<CommandArgType>() { CommandArgType.PodID } },
+            { CommandType.Sdock, new List<CommandArgType>() { CommandArgType.PodId } },
             { CommandType.Undock, new List<CommandArgType>() { } },
             { CommandType.Process0, new List<CommandArgType>() { } },
             { CommandType.Process1, new List<CommandArgType>() { } },
@@ -44,7 +44,7 @@ namespace LayoutModels
             { CommandType.ReadSlot, new List<CommandArgType>() { } },
             { CommandType.ReadPod, new List<CommandArgType>() { } },
             { CommandType.Pod, new List<CommandArgType>() { CommandArgType.Capacity, CommandArgType.Type } },
-            { CommandType.Payload, new List<CommandArgType>() { CommandArgType.PodID, CommandArgType.Slot } }
+            { CommandType.Payload, new List<CommandArgType>() { CommandArgType.PodId, CommandArgType.Slot } }
         };
     }
 
@@ -86,6 +86,17 @@ namespace LayoutModels
             CommSpec = commSpec;
             AcceptedTargets = acceptedTargets;
             AcceptAnyTarget = false;
+        }
+
+        public Translator(CommandStructure commStruct, ResponseStructure respStruct, ICommSpec commSpec)
+        {
+            ComS = commStruct;
+            RspS = respStruct;
+            AckS = new ();
+
+            CommSpec = commSpec;
+            AcceptedTargets = new();
+            AcceptAnyTarget = true;
         }
 
 
@@ -139,50 +150,12 @@ namespace LayoutModels
         {
             if (CommandRequirement.CommandDict.TryGetValue(command, out var argList))
             {
-                foreach (var arg in argList)
+                foreach (CommandArgType arg in argList)
                 {
                     try
                     {
                         int index = GetIndex(arg, CommSpec.CommandArgs[rawAction]);
-
-                        switch (arg)
-                        {
-                            case CommandArgType.EndEffector:
-                                job.EndEffector = Int32.Parse(receievedValues[ComS.IndexValueStart + index]);
-                                break;
-
-                            case CommandArgType.TargetStation:
-                                job.TargetStation = receievedValues[ComS.IndexValueStart + index];
-                                break;
-
-                            case CommandArgType.Slot:
-                                job.Slot = Int32.Parse(receievedValues[ComS.IndexValueStart + index]);
-                                break;
-
-                            case CommandArgType.PodID:
-                                job.PodID = receievedValues[ComS.IndexValueStart + index];
-                                break;
-
-                            case CommandArgType.DoorStatus:
-                            case CommandArgType.PowerStatus:
-                                if (receievedValues[ComS.IndexValueStart + index] == "1")
-                                    job.State = true;
-                                else
-                                    job.State = false;
-                                break;
-
-                            case CommandArgType.Capacity:
-                                job.Capacity = Int32.Parse(receievedValues[ComS.IndexValueStart + index]);
-                                break;
-
-                            case CommandArgType.Type:
-                                job.PayloadType = receievedValues[ComS.IndexValueStart + index];
-                                break;
-
-                            case CommandArgType.Ignore:
-                                // Do nothing
-                                break;
-                        }
+                        job.Arguments[(int) arg] = receievedValues[ComS.IndexValueStart + index];
                     }
                     catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
                 }
@@ -192,8 +165,38 @@ namespace LayoutModels
                 // Pass
             }
         }
+        private void AddArgumentToList(List<string> response, int index, string value)
+        {
+            if (index >= 0 && index < response.Count)
+                response[index] = value;
+        }
+        private string ConvertListToString (List<string> response, string delimiter)
+        {
+            return string.Join(delimiter, response.Where(s => !string.IsNullOrEmpty(s)));
+        }
+        private string GetCommandStringFromEnum(CommandType commandType)
+        {
+            foreach (KeyValuePair<string, List<CommandType>> entry in CommSpec.CommandMap)
+            {
+                if (entry.Value.Contains(commandType))
+                {
+                    return entry.Key;
+                }
+            }
+            return string.Empty;
+        }
+        private string CalculateChecksum(string responseString)
+        {
+            int sum = 0;
 
-        public List<Job> TranslateCommand(string commandString)
+            foreach (char c in responseString)
+                sum += (int)c;
+
+            return (sum % 256).ToString("X2");
+        }
+
+
+        public List<Job> TranslateCommandFromString(string commandString)
         {
             int pFrom = 0;
             if (ComS.StartCharacter != null)
@@ -238,19 +241,57 @@ namespace LayoutModels
 
             // TODO: Checksum
         }
-
-        public string TranslateResponse(Job command, ResponseTypes RspType, string message)
+        public string TranslateCommandToString(Job command)
         {
-            ResponseStructure UseS = AckS;
+            List<string> response = ["", "", "", "", "", "", "", "", "", "", ""];
+
+            string actionString = GetCommandStringFromEnum(command.Action);
+
+            AddArgumentToList(response, ComS.IndexTransaction, command.TransactionID);
+            AddArgumentToList(response, ComS.IndexCommand, actionString);
+            AddArgumentToList(response, ComS.IndexTarget, command.Target);
+
+            List<CommandArgType> commandArgs = CommSpec.CommandArgs[actionString];
+            for (int i = 0; i < commandArgs.Count; i++)
+            {
+                AddArgumentToList(response, ComS.IndexValueStart + i, command.Arguments[(int) commandArgs[i]]);
+            }
+
+            string responseString = ConvertListToString(response, ComS.Delimiter);
+
+            string checksum = string.Empty;
+            if (ComS.CheckSum)
+            {
+                checksum = CalculateChecksum(responseString);
+            }
+
+            string returnString = $"{ComS.StartCharacter}{responseString}{ComS.EndCharacter}{checksum}";
+
+            if (ComS.CRLF)
+                returnString += "\r\n";
+
+            return returnString;
+        }
+        public (ResponseTypes, string) TranslateResponseToMessage(string commandString)
+        {
+            // TODO:
+            throw new NotImplementedException();
+        }
+        public string TranslateResponseToString(Job command, ResponseTypes RspType, string message)
+        {
+            ResponseStructure UseS;
 
             switch (RspType)
             {
                 case ResponseTypes.Ack:
                 case ResponseTypes.Nack:
-                    UseS = AckS; break;
+                    UseS = AckS;
+                    break;
                 case ResponseTypes.Error:
                 case ResponseTypes.Success:
-                    UseS = RspS; break;
+                default:
+                    UseS = RspS; 
+                    break;
             }
 
             if (RspType == ResponseTypes.Ack)
@@ -258,32 +299,19 @@ namespace LayoutModels
                 message = AckS.InjectAckResponse;
             }
 
-            List<string> response = ["", "", "", "", ""];
+            List<string> response = ["", "", "", "", "", "", "", "", "", "", ""];
 
-            if (UseS.IndexTransaction >= 0 && UseS.IndexTransaction < response.Count)
-                response[UseS.IndexTransaction] = command.TransactionID;
+            AddArgumentToList(response, UseS.IndexTransaction, command.TransactionID);
+            AddArgumentToList(response, UseS.IndexMessage, CommSpec.ResponseMap[RspType]);
+            AddArgumentToList(response, UseS.IndexTarget, command.Target);
+            AddArgumentToList(response, UseS.OriginalCommandIndex, command.RawCommand);
+            AddArgumentToList(response, UseS.IndexResponseStart, message);
+            string responseString = ConvertListToString(response, UseS.Delimiter);
 
-            if (UseS.IndexMessage >= 0 && UseS.IndexMessage < response.Count)
-                response[UseS.IndexMessage] = CommSpec.ResponseMap[RspType];
-
-            if (UseS.IndexTarget >= 0 && UseS.IndexTarget < response.Count)
-                response[UseS.IndexTarget] = command.Target;
-
-            if (UseS.OriginalCommandIndex >= 0 && UseS.OriginalCommandIndex < response.Count)
-                response[UseS.OriginalCommandIndex] = command.RawCommand;
-
-            if (UseS.IndexResponseStart >= 0 && UseS.IndexResponseStart < response.Count)
-                response[UseS.IndexResponseStart] = message;
-
-            int sum = 0;
-            string responseString = string.Join(UseS.Delimiter, response.Where(s => !string.IsNullOrEmpty(s)));
-
-            string? checksum = null;
+            string checksum = string.Empty;
             if (UseS.CheckSum)
             {
-                foreach (char c in responseString)
-                    sum += (int)c;
-                checksum = (sum % 256).ToString("X2");
+                checksum = CalculateChecksum(responseString);
             }
 
             string returnString = $"{UseS.StartCharacter}{responseString}{UseS.EndCharacter}{checksum}";
@@ -293,15 +321,13 @@ namespace LayoutModels
 
             return returnString;
         }
-
         public string TranslateErrorResponse(Job command, ErrorCodes code)
         {
-            return TranslateResponse(command, ResponseTypes.Error, code.ToString());
+            return TranslateResponseToString(command, ResponseTypes.Error, code.ToString());
         }
-
         public string TranslateNackResponse(Job command, NackCodes code)
         {
-            return TranslateResponse(command, ResponseTypes.Nack, code.ToString());
+            return TranslateResponseToString(command, ResponseTypes.Nack, code.ToString());
         }
 
     }

@@ -19,20 +19,20 @@ namespace Communicator
         private StreamReader? _reader;
         private StreamWriter? _writer;
 
-        private bool _isConnected;
+        public bool isConnected;
 
         public TCPClient(string serverIp, int serverPort)
         {
             _serverIp = serverIp;
             _serverPort = serverPort;
-            _isConnected = false; // Initial state: not connected
+            isConnected = false; // Initial state: not connected
         }
 
         public async Task StartClientAsync()
         {
             await Task.Run(async () =>
             {
-                while (!_isConnected)
+                while (!isConnected)
                 {
                     try
                     {
@@ -42,7 +42,7 @@ namespace Communicator
                         _stream = _client.GetStream();
                         _reader = new StreamReader(_stream, Encoding.UTF8);
                         _writer = new StreamWriter(_stream, Encoding.UTF8) { AutoFlush = true };
-                        _isConnected = true;
+                        isConnected = true;
 
                         Console.WriteLine("Connected to server");
 
@@ -63,17 +63,17 @@ namespace Communicator
             try
             {
                 string message;
-                while (_isConnected && (message = await _reader.ReadLineAsync()) != null)
+                while (isConnected && (message = await _reader.ReadLineAsync()) != null)
                 {
                     Console.WriteLine($"Received: {message}");
                 }
             }
             catch (IOException)
             {
-                if (_isConnected)
+                if (isConnected)
                 {
                     Console.WriteLine("Connection lost. Waiting to reconnect...");
-                    _isConnected = false; // Mark as disconnected
+                    isConnected = false; // Mark as disconnected
                 }
             }
         }
@@ -82,7 +82,7 @@ namespace Communicator
         {
             try
             {
-                if (_isConnected && !string.IsNullOrEmpty(messageToSend))
+                if (isConnected && !string.IsNullOrEmpty(messageToSend))
                 {
                     await _writer.WriteLineAsync(messageToSend); // Send message asynchronously
                     Console.WriteLine($"Sent: {messageToSend}");
@@ -94,20 +94,20 @@ namespace Communicator
             }
             catch (IOException)
             {
-                if (_isConnected)
+                if (isConnected)
                 {
                     Console.WriteLine("Unable to send message. Connection lost.");
-                    _isConnected = false; // Mark as disconnected
+                    isConnected = false; // Mark as disconnected
                 }
             }
         }
 
         public void CloseConnection()
         {
-            if (_isConnected)
+            if (isConnected)
             {
                 Console.WriteLine("Closing connection...");
-                _isConnected = false;
+                isConnected = false;
 
                 // Safely close the network stream and client
                 _writer?.Close();

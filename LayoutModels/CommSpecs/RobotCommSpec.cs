@@ -8,8 +8,9 @@ using LayoutCommands;
 
 namespace LayoutModels.CommSpecs
 {
-    public class UniversalCommSpec : ICommSpec
+    public class RobotCommSpec : ICommSpec
     {
+        // TODO:
         public Dictionary<String, List<CommandType>> CommandMap { get; set; } = new()
         {
             { "ROBOTPICK", new List<CommandType> { CommandType.Pick } },

@@ -14,10 +14,10 @@ namespace Communicator
 
         private readonly IPAddress ipAddress;
         private readonly int port;
-        private TcpListener server;
-        private TcpClient client;
-        private NetworkStream stream;
-        private Thread listenerThread;
+        private TcpListener? server;
+        private TcpClient? client;
+        private NetworkStream? stream;
+        private Thread? listenerThread;
         private volatile bool isRunning;
 
         public TCPServer(string ipAddress, int port)
@@ -92,7 +92,8 @@ namespace Communicator
             if (client != null && client.Connected)
             {
                 byte[] buffer = Encoding.ASCII.GetBytes(message);
-                stream.Write(buffer, 0, buffer.Length);
+                if (stream  != null)
+                    stream.Write(buffer, 0, buffer.Length);
             }
         }
 

@@ -12,6 +12,7 @@ using System.Xml.Linq;
 using LayoutCommands;
 using Grpc.Core;
 using System.Windows.Input;
+using System.Numerics;
 
 namespace LayoutModels
 {
@@ -193,7 +194,7 @@ namespace LayoutModels
             {
                 if (commandString == null)
                     throw new NackResponse(NackCodes.CommandError);
-                commands = Translators[commSpecName].TranslateCommand(commandString); 
+                commands = Translators[commSpecName].TranslateCommandFromString(commandString); 
             }
             catch (IndexOutOfRangeException) 
             {
@@ -207,6 +208,14 @@ namespace LayoutModels
             {
                 OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(
                     new Job() { RawCommand = commandString }, 
+                    NackCodes.MissingArguments));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
+                return;
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(
+                    new Job() { RawCommand = commandString },
                     NackCodes.MissingArguments));
                 OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
                 return;
@@ -234,7 +243,7 @@ namespace LayoutModels
                 OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Nack},{e.Code}"));
                 return;
             }
-            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponse(commands.Last(), ResponseTypes.Ack, ""));
+            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponseToString(commands.Last(), ResponseTypes.Ack, ""));
             OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Ack}"));
 
             string response = string.Empty;
@@ -252,7 +261,7 @@ namespace LayoutModels
                 OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Error},{e.Code}"));
                 return;
             }
-            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponse(commands.Last(), ResponseTypes.Success, response));
+            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponseToString(commands.Last(), ResponseTypes.Success, response));
             OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Success},{response}"));
         }
         public override Task<CommandReply> ExecuteCommand_GRPC(Job request, ServerCallContext context)
@@ -264,6 +273,13 @@ namespace LayoutModels
             {
                 CheckCommand(request, false);
                 response = ExecuteCommand(request, string.Empty);
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Nack},{ResponseTypes.Nack}"));
+                gRPCResponse.ResponseType = ResponseTypes.Nack;
+                gRPCResponse.Response = NackCodes.MissingArguments.ToString();
+                return Task.FromResult(gRPCResponse);
             }
             catch (NackResponse e)
             {
@@ -285,6 +301,12 @@ namespace LayoutModels
 
             return Task.FromResult(gRPCResponse);
         }
+        private bool ConvertStringtoBool(string str)
+        {
+            if (Int32.Parse(str) == 0)
+                return false;
+            return true;
+        }
 
 
         private void CheckCommand(Job command, bool commandLock)
@@ -298,26 +320,26 @@ namespace LayoutModels
             {
                 case CommandType.Pick:
                     CheckManipulatorExist(command.Target);
-                    CheckStationExist(command.TargetStation);
+                    CheckStationExist(command.Arguments[(int) CommandArgType.TargetStation]);
 
                     if (!Manipulators[command.Target].Power)
                         throw new NackResponse(NackCodes.PowerOff);
                     if (Manipulators[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
-                    if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
+                    if (!Manipulators[command.Target].EndEffectors.ContainsKey(Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector])))
                         throw new NackResponse(NackCodes.EndEffectorMissing);
                     break;
 
 
                 case CommandType.Place:
                     CheckManipulatorExist(command.Target);
-                    CheckStationExist(command.TargetStation);
+                    CheckStationExist(command.Arguments[(int)CommandArgType.TargetStation]);
 
                     if (!Manipulators[command.Target].Power)
                         throw new NackResponse(NackCodes.PowerOff);
                     if (Manipulators[command.Target].Busy)
                         throw new NackResponse(NackCodes.Busy);
-                    if (!Manipulators[command.Target].EndEffectors.ContainsKey(command.EndEffector))
+                    if (!Manipulators[command.Target].EndEffectors.ContainsKey(Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector])))
                         throw new NackResponse(NackCodes.EndEffectorMissing);
                     break;
 
@@ -370,11 +392,11 @@ namespace LayoutModels
 
 
                 case CommandType.Dock:
-                    if(command.PodID.Length == 0)
-                        command.PodID = Pods.Keys.Last();
+                    if(command.Arguments[(int)CommandArgType.PodId].Length == 0)
+                        command.Arguments[(int)CommandArgType.PodId] = Pods.Keys.Last();
 
                     CheckStationExist(command.Target);
-                    CheckPodExist(command.PodID);
+                    CheckPodExist(command.Arguments[(int)CommandArgType.PodId]);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
                         throw new NackResponse(NackCodes.CommandError);
@@ -455,19 +477,23 @@ namespace LayoutModels
 
 
                 case CommandType.Payload:
-                    if (command.PodID.Length == 0) 
-                        command.PodID = Pods.Keys.Last();
+                    if (!command.Arguments.Keys.Contains((int) CommandArgType.PodId))
+                        command.Arguments[(int) CommandArgType.PodId] = Pods.Keys.Last();
 
-                    CheckPodExist(command.PodID);
+                    CheckPodExist(command.Arguments[(int)CommandArgType.PodId]);
 
-                    if (command.Slot < 1)
+                    int slot = Int32.Parse(command.Arguments[(int)CommandArgType.Slot]);
+
+                    if (slot < 1)
                         throw new NackResponse(NackCodes.CommandError);
 
-                    while (Pods[command.PodID].slots.ContainsKey(command.Slot))
+                    while (Pods[command.Arguments[(int)CommandArgType.PodId]].slots.ContainsKey(slot))
                     {
-                        command.Slot++;
-                        if (command.Slot > Pods[command.PodID].Capacity)
+                        slot++;
+                        if (slot > Pods[command.Arguments[(int)CommandArgType.PodId]].Capacity)
                             throw new NackResponse(NackCodes.CommandError);
+                        
+                        command.Arguments[(int)CommandArgType.Slot] = slot.ToString();
                     }
                     break;
             }
@@ -486,15 +512,15 @@ namespace LayoutModels
             switch (command.Action)
             {
                 case CommandType.Pick:
-                    Manipulators[command.Target].Pick(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
+                    Manipulators[command.Target].Pick(command.TransactionID, Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector]), Stations[command.Arguments[(int)CommandArgType.TargetStation]], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
                     break;
 
                 case CommandType.Place:
-                    Manipulators[command.Target].Place(command.TransactionID, command.EndEffector, Stations[command.TargetStation], command.Slot);
+                    Manipulators[command.Target].Place(command.TransactionID, Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector]), Stations[command.Arguments[(int)CommandArgType.TargetStation]], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
                     break;
 
                 case CommandType.Door:
-                    Stations[command.Target].Door(command.TransactionID, command.State);
+                    Stations[command.Target].Door(command.TransactionID, ConvertStringtoBool(command.Arguments[(int)CommandArgType.DoorStatus]));
                     break;
 
                 case CommandType.DoorOpen:
@@ -512,8 +538,8 @@ namespace LayoutModels
                     break;
 
                 case CommandType.Dock:
-                    Stations[command.Target].Dock(command.TransactionID, Pods[command.PodID]);
-                    Pods.Remove(command.PodID);
+                    Stations[command.Target].Dock(command.TransactionID, Pods[command.Arguments[(int)CommandArgType.PodId]]);
+                    Pods.Remove(command.Arguments[(int)CommandArgType.PodId]);
                     break;
 
                 case CommandType.Undock:
@@ -535,7 +561,7 @@ namespace LayoutModels
                     break;
 
                 case CommandType.Power:
-                    if (command.State)
+                    if (ConvertStringtoBool(command.Arguments[(int)CommandArgType.PowerStatus]))
                         Manipulators[command.Target].PowerOn(command.TransactionID);
                     else
                         Manipulators[command.Target].PowerOff(command.TransactionID);
@@ -566,16 +592,16 @@ namespace LayoutModels
 
                 case CommandType.Pod:
                     string podID = GetID(5);
-                    Pods.Add(podID, new Pod(podID, command.Capacity, command.PayloadType));
+                    Pods.Add(podID, new Pod(podID, Int32.Parse(command.Arguments[(int)CommandArgType.Capacity]), command.Arguments[(int)CommandArgType.Type]));
                     response = podID;
-                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Pod {podID}."));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Pod {podID} for {command.Arguments[(int)CommandArgType.Type]} with {command.Arguments[(int)CommandArgType.Capacity]} slots."));
                     break;
 
                 case CommandType.Payload:
                     string payloadID = GetID(5);
-                    Pods[command.PodID].slots[command.Slot] = new Payload(payloadID, Pods[command.PodID].PayloadType);
+                    Pods[command.Arguments[(int)CommandArgType.PodId]].slots[Int32.Parse(command.Arguments[(int)CommandArgType.Slot])] = new Payload(payloadID, Pods[command.Arguments[(int)CommandArgType.PodId]].PayloadType, command.Arguments[(int)CommandArgType.PodId], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
                     response = payloadID;
-                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {command.PodID} at slot {command.Slot}."));
+                    OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Created Payload {payloadID} on Pod {command.Arguments[(int)CommandArgType.PodId]} at slot {Int32.Parse(command.Arguments[(int)CommandArgType.Slot])}."));
                     break;
 
                 case CommandType.StartSim:
