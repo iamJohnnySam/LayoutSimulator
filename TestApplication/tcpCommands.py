@@ -118,7 +118,7 @@ def execute_TCP():
     connection.close()
 
 
-def run_TCP_commands():
+def run_commands():
     connect_app(8000)
     threading.Thread(target=receive_ack, daemon=True).start()
     time.sleep(1);

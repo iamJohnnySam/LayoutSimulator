@@ -11,6 +11,7 @@ using System.Transactions;
 using LayoutCommands;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 using System.Security.Cryptography;
+using Google.Protobuf.WellKnownTypes;
 
 namespace LayoutModels
 {
@@ -74,7 +75,7 @@ namespace LayoutModels
             AckS = ackStruct;
             RspS = respStruct;
             CommSpec = commSpec;
-            AcceptedTargets = new ();
+            AcceptedTargets = [];
             AcceptAnyTarget = true;
         }
 
@@ -95,7 +96,7 @@ namespace LayoutModels
             AckS = new ();
 
             CommSpec = commSpec;
-            AcceptedTargets = new();
+            AcceptedTargets = [];
             AcceptAnyTarget = true;
         }
 
@@ -106,7 +107,7 @@ namespace LayoutModels
             if (index == -1)
             {
                 OnLogEvent?.Invoke(this, new LogMessage($"Number of arguments in command sent did not match number of arguments expected in Comm. Spec."));
-                throw new NackResponse(NackCodes.MissingArguments);
+                throw new NackResponse(NackCodes.MissingArguments, $"Translator could not get the index of {value} in the arguments.");
             }
             return index;
         }
@@ -130,10 +131,12 @@ namespace LayoutModels
                         runCommand.Target = ComS.FixedTarget ?? "P1";
                 }
 
+                // TODO: Reverse Target Mapping
+
                 if (!AcceptAnyTarget && !AcceptedTargets.Any(s => runCommand.Target.StartsWith(s)))
                 {
                     OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Target for receieved Command {rawAction} is not in the allowed target list."));
-                    throw new NackResponse(NackCodes.CommandError);
+                    throw new NackResponse(NackCodes.CommandError, $"Translator could not find {rawAction} in the allowed target list for {runCommand.Target}.");
                 }
 
                 OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Translating command {command}."));
@@ -152,12 +155,22 @@ namespace LayoutModels
             {
                 foreach (CommandArgType arg in argList)
                 {
+                    string prefix = string.Empty;
+                    if (ComS.Prefixs.ContainsKey(arg))
+                        prefix = ComS.Prefixs[arg];
+
                     try
                     {
-                        int index = GetIndex(arg, CommSpec.CommandArgs[rawAction]);
-                        job.Arguments[(int) arg] = receievedValues[ComS.IndexValueStart + index];
+                        int reduce = 0;
+                        if (IgnoreTargetCommands.Contains(command))
+                            reduce = 1;
+                        int index = GetIndex(arg, CommSpec.CommandArgs[rawAction]) - reduce;
+                        if (prefix == string.Empty)
+                            job.Arguments[(int) arg] = receievedValues[ComS.IndexValueStart + index];
+                        else
+                            job.Arguments[(int)arg] = receievedValues[ComS.IndexValueStart + index].Replace(prefix, string.Empty);
                     }
-                    catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments); }
+                    catch (FormatException) { throw new NackResponse(NackCodes.MissingArguments, $"Translator could not get the argument {command} for {rawAction}."); }
                 }
             }
             else
@@ -165,7 +178,7 @@ namespace LayoutModels
                 // Pass
             }
         }
-        private void AddArgumentToList(List<string> response, int index, string value)
+        private static void AddArgumentToList(List<string> response, int index, string value)
         {
             if (index >= 0 && index < response.Count)
                 response[index] = value;
@@ -185,7 +198,7 @@ namespace LayoutModels
             }
             return string.Empty;
         }
-        private string CalculateChecksum(string responseString)
+        private static string CalculateChecksum(string responseString)
         {
             int sum = 0;
 
@@ -206,32 +219,32 @@ namespace LayoutModels
             if (ComS.EndCharacter != null)
                 pTo = commandString.LastIndexOf(ComS.EndCharacter);
 
-            string rawCommand = commandString.Substring(pFrom, pTo - pFrom);
+            string rawReceievedCommand = commandString.Substring(pFrom, pTo - pFrom);
 
-            List<string> vals = rawCommand.Split(ComS.Delimiter.ToCharArray()).ToList();
+            List<string> vals = [.. rawReceievedCommand.Split(ComS.Delimiter.ToCharArray())];
 
             string transactionID = vals[ComS.IndexTransaction];
 
-            List<string> valsWithoutTxId = new List<string>(vals);
+            List<string> valsWithoutTxId = new(vals);
             valsWithoutTxId.RemoveAt(ComS.IndexTransaction);
-            rawCommand = string.Join(ComS.Delimiter[0], valsWithoutTxId);
+            string rawCommand = string.Join(ComS.Delimiter[0], valsWithoutTxId);
 
             string rawAction = vals[ComS.IndexCommand].ToUpper();
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {rawAction} in string {rawCommand}."));
 
             if (!CommSpec.CommandMap.ContainsKey(rawAction))
-                throw new NackResponse(NackCodes.CommandError);
+                throw new NackResponse(NackCodes.CommandError, $"Translator could not find action in Comm Spec Commands.");
 
             if (!CommSpec.CommandArgs.ContainsKey(rawAction))
-                throw new NackResponse(NackCodes.CommSpecError);
+                throw new NackResponse(NackCodes.CommSpecError, $"Translator could not find action in Comm Spec Arguments.");
 
             List<CommandType> commands = CommSpec.CommandMap[rawAction];
-            List<Job> runCommands = new ();
+            List<Job> runCommands = [];
 
             if (commands.Count != 1 || !IgnoreTargetCommands.Contains(commands[0]))
                 if (vals.Count != (CommSpec.CommandArgs[rawAction].Count + ComS.IndexValueStart))
-                    throw new NackResponse(NackCodes.CommandError);
+                    throw new NackResponse(NackCodes.CommandError, $"Translator could not match receieved commands against expected Comm Spec commands.");
 
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Commands identified {commands.Count} command(s)."));
 
@@ -249,12 +262,20 @@ namespace LayoutModels
 
             AddArgumentToList(response, ComS.IndexTransaction, command.TransactionID);
             AddArgumentToList(response, ComS.IndexCommand, actionString);
-            AddArgumentToList(response, ComS.IndexTarget, command.Target);
+
+            if (CommSpec.StationMapping.ContainsKey(command.Target))
+                AddArgumentToList(response, ComS.IndexTarget, CommSpec.StationMapping[command.Target]);
+            else
+                AddArgumentToList(response, ComS.IndexTarget, command.Target);
 
             List<CommandArgType> commandArgs = CommSpec.CommandArgs[actionString];
             for (int i = 0; i < commandArgs.Count; i++)
             {
-                AddArgumentToList(response, ComS.IndexValueStart + i, command.Arguments[(int) commandArgs[i]]);
+                string prefix = string.Empty;
+                if (ComS.Prefixs.ContainsKey(commandArgs[i]))
+                    prefix = ComS.Prefixs[commandArgs[i]];
+
+                AddArgumentToList(response, ComS.IndexValueStart + i, $"{prefix}{command.Arguments[(int)commandArgs[i]]}");
             }
 
             string responseString = ConvertListToString(response, ComS.Delimiter);
@@ -272,29 +293,48 @@ namespace LayoutModels
 
             return returnString;
         }
-        public (ResponseTypes, string) TranslateResponseToMessage(string commandString)
+        public (string, ResponseType, string) TranslateResponseToMessage(string commandString)
         {
-            // TODO:
-            throw new NotImplementedException();
+            int pFrom = 0;
+            if (RspS.StartCharacter != null)
+                pFrom = commandString.IndexOf(RspS.StartCharacter) + RspS.StartCharacter.Length;
+
+            int pTo = commandString.Length;
+            if (RspS.EndCharacter != null)
+                pTo = commandString.LastIndexOf(RspS.EndCharacter);
+
+            string rawCommand = commandString.Substring(pFrom, pTo - pFrom);
+
+            List<string> vals = [.. rawCommand.Split(RspS.Delimiter.ToCharArray())];
+
+            string transactionID = vals[RspS.IndexTransaction];
+            string responseTypeString = vals[RspS.IndexMessage];
+            ResponseType responseType = CommSpec.ResponseMap.FirstOrDefault(x => x.Value == responseTypeString).Key;
+
+            OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Receieved Command {responseTypeString} in string {rawCommand}."));
+
+            string reply = string.Join(RspS.Delimiter, vals.Skip(RspS.IndexResponseStart));
+
+            return (transactionID, responseType, reply);
         }
-        public string TranslateResponseToString(Job command, ResponseTypes RspType, string message)
+        public string TranslateResponseToString(Job command, ResponseType RspType, string message)
         {
             ResponseStructure UseS;
 
             switch (RspType)
             {
-                case ResponseTypes.Ack:
-                case ResponseTypes.Nack:
+                case ResponseType.Ack:
+                case ResponseType.Nack:
                     UseS = AckS;
                     break;
-                case ResponseTypes.Error:
-                case ResponseTypes.Success:
+                case ResponseType.Error:
+                case ResponseType.Success:
                 default:
                     UseS = RspS; 
                     break;
             }
 
-            if (RspType == ResponseTypes.Ack)
+            if (RspType == ResponseType.Ack)
             {
                 message = AckS.InjectAckResponse;
             }
@@ -321,13 +361,13 @@ namespace LayoutModels
 
             return returnString;
         }
-        public string TranslateErrorResponse(Job command, ErrorCodes code)
+        public string TranslateErrorResponse(Job command, ErrorCodes code, string reply)
         {
-            return TranslateResponseToString(command, ResponseTypes.Error, code.ToString());
+            return TranslateResponseToString(command, ResponseType.Error, $"{code}: {reply}");
         }
-        public string TranslateNackResponse(Job command, NackCodes code)
+        public string TranslateNackResponse(Job command, NackCodes code, string reply)
         {
-            return TranslateResponseToString(command, ResponseTypes.Nack, code.ToString());
+            return TranslateResponseToString(command, ResponseType.Nack, $"{code}: {reply}");
         }
 
     }

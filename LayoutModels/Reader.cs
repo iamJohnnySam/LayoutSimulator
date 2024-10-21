@@ -7,18 +7,17 @@ using System.Threading.Tasks;
 
 namespace LayoutModels
 {
-    public class Reader: ITarget
+    public class Reader: BaseStation, ITarget
     {
         public event EventHandler<LogMessage>? OnLogEvent;
 
-        public string ReaderID { get; set; }
         public Station TargetStation { get; set; }
         public int SlotID { get; set; }
         private bool ReadSlot { get; set; }
 
         public Reader(string readerID, Station targetStation, int slot) 
         {
-            ReaderID = readerID;
+            StationID = readerID;
             TargetStation = targetStation;
             SlotID = slot;
             ReadSlot = true;
@@ -26,7 +25,7 @@ namespace LayoutModels
 
         public Reader(string readerID, Station targetStation)
         {
-            ReaderID = readerID;
+            StationID = readerID;
             TargetStation = targetStation;
             SlotID = 1;
 
@@ -47,7 +46,7 @@ namespace LayoutModels
                     OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Reader {ReadID} returned slot ID {value} at {TargetStation.StationID}"));
                 }
                 else
-                    throw new ErrorResponse(ErrorCodes.PayloadNotAvailable);
+                    throw new ErrorResponse(ErrorCodes.PayloadNotAvailable, $"Reader {StationID} did not have any payload on {TargetStation.StationID} slot {SlotID} to read.");
             }
             else
             {

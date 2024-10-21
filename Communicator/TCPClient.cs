@@ -28,7 +28,7 @@ namespace Communicator
             isConnected = false; // Initial state: not connected
         }
 
-        public async Task StartClientAsync()
+        public async Task StartClientAsync(bool startListening)
         {
             await Task.Run(async () =>
             {
@@ -46,8 +46,8 @@ namespace Communicator
 
                         Console.WriteLine("Connected to server");
 
-                        // Start receiving and sending data asynchronously
-                        await ReceiveDataAsync();
+                        if (startListening)
+                            await ReceiveDataAsync();
                     }
                     catch (SocketException)
                     {
@@ -65,6 +65,7 @@ namespace Communicator
                 string message;
                 while (isConnected && (message = await _reader.ReadLineAsync()) != null)
                 {
+                    OnMessageReceived?.Invoke(this, message);
                     Console.WriteLine($"Received: {message}");
                 }
             }
@@ -78,13 +79,57 @@ namespace Communicator
             }
         }
 
+        public string ReceiveData()
+        {
+            try
+            {
+                if (_reader != null) {
+                    string? message = _reader.ReadLine();
+                    return message ?? "";
+                }
+            }
+            catch (IOException)
+            {
+                if (isConnected)
+                {
+                    Console.WriteLine("Connection lost. Waiting to reconnect...");
+                    isConnected = false;
+                }
+            }
+            return "CONNECTION ERROR";
+        }
+
         public async Task SendDataAsync(string messageToSend)
         {
             try
             {
                 if (isConnected && !string.IsNullOrEmpty(messageToSend))
                 {
-                    await _writer.WriteLineAsync(messageToSend); // Send message asynchronously
+                    await _writer.WriteLineAsync(messageToSend);
+                    Console.WriteLine($"Sent: {messageToSend}");
+                }
+                else
+                {
+                    Console.WriteLine("Cannot send message. Either disconnected or message is empty.");
+                }
+            }
+            catch (IOException)
+            {
+                if (isConnected)
+                {
+                    Console.WriteLine("Unable to send message. Connection lost.");
+                    isConnected = false;
+                }
+            }
+        }
+
+        public void SendData(string messageToSend)
+        {
+            try
+            {
+                if (isConnected && !string.IsNullOrEmpty(messageToSend) && (_writer != null))
+                {
+                    _writer.WriteLine(messageToSend);
                     Console.WriteLine($"Sent: {messageToSend}");
                 }
                 else

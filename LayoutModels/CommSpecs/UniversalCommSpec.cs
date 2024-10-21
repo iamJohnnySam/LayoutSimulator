@@ -58,12 +58,14 @@ namespace LayoutModels.CommSpecs
             { "PAYLOAD", new List<CommandArgType> { CommandArgType.PodId, CommandArgType.Slot} },
             { "START", new List<CommandArgType> { } }
         };
-        public Dictionary<ResponseTypes, String> ResponseMap { get; set; } = new()
+        public Dictionary<ResponseType, String> ResponseMap { get; set; } = new()
         {
-            { ResponseTypes.Ack, "ACK" },
-            { ResponseTypes.Nack, "NAK" },
-            { ResponseTypes.Success, "SUCCESS" },
-            { ResponseTypes.Error, "ERROR" }
+            { ResponseType.Ack, "ACK" },
+            { ResponseType.Nack, "NAK" },
+            { ResponseType.Success, "SUCCESS" },
+            { ResponseType.Error, "ERROR" }
         };
+
+        public Dictionary<string, string> StationMapping { get; set; } = new();
     }
 }

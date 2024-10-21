@@ -1,4 +1,5 @@
-﻿using System;
+﻿using LayoutCommands;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -19,8 +20,9 @@ namespace LayoutModels.CommSpecs
         public int IndexValueStart { get; set;} 
         public bool CheckSum { get; set; }
         public bool CRLF { get; set; }
+        public Dictionary<CommandArgType, string> Prefixs { get; set; }
 
-        public CommandStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, int indexValueStart, bool checkSum, bool cRLF)
+        public CommandStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, int indexTarget, int indexValueStart, bool checkSum, bool cRLF, Dictionary<CommandArgType, string> prefixs)
         {
             DedicatedPort = false;
             StartCharacter = startChar;
@@ -33,9 +35,10 @@ namespace LayoutModels.CommSpecs
             IndexValueStart = indexValueStart;
             CheckSum = checkSum;
             CRLF = cRLF;
+            Prefixs = prefixs;
         }
 
-        public CommandStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, string fixedTarget, int indexValueStart, bool checkSum, bool cRLF)
+        public CommandStructure(string startChar, string endChar, string delimiter, int indexTransaction, int indexCommand, string fixedTarget, int indexValueStart, bool checkSum, bool cRLF, Dictionary<CommandArgType, string> prefixs)
         {
             DedicatedPort = true;
             StartCharacter = startChar;
@@ -48,6 +51,7 @@ namespace LayoutModels.CommSpecs
             IndexValueStart = indexValueStart;
             CheckSum = checkSum;
             CRLF = cRLF;
+            Prefixs = prefixs;
         }
     }
 

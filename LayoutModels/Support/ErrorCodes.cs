@@ -22,7 +22,9 @@ namespace LayoutModels.Support
         UnknownArmState,
         PayloadTypeMismatch,
         SlotIndexMissing,
-        IncorrectState
+        IncorrectState,
+        ModuleError,
+        TimedOut
     }
     public enum NackCodes
     {
@@ -37,5 +39,6 @@ namespace LayoutModels.Support
         StationDoesNotHaveDoor,
         PowerOff,
         EndEffectorMissing,
+        ModuleNack
     }
 }

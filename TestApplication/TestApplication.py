@@ -6,8 +6,8 @@ import grpcCommands
 
 if __name__ == "__main__":
     
-    # tcpCommands.run_commands()
-    grpcCommands.run_commands()
+    tcpCommands.run_commands()
+    # grpcCommands.run_commands()
 
 
     while(1):

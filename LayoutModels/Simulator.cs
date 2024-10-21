@@ -148,24 +148,40 @@ namespace LayoutModels
         private void CheckPodExist(string target)
         {
             if (!Pods.ContainsKey(target))
-                throw new NackResponse(NackCodes.TargetNotExist);
+                throw new NackResponse(NackCodes.TargetNotExist, $"Simulator could not find pod {target}.");
         }
         private void CheckStationExist(string target)
         {
             if (!Stations.ContainsKey(target))
-                throw new NackResponse(NackCodes.TargetNotExist);
+                throw new NackResponse(NackCodes.TargetNotExist, $"Simulator could not find station {target}.");
         }
         private void CheckManipulatorExist(string target)
         {
             if (!Manipulators.ContainsKey(target))
-                throw new NackResponse(NackCodes.TargetNotExist);
+                throw new NackResponse(NackCodes.TargetNotExist, $"Simulator could not find manipulator {target}.");
         }
         private void CheckReaderExist(string target)
         {
             if (!Readers.ContainsKey(target))
-                throw new NackResponse(NackCodes.TargetNotExist);
+                throw new NackResponse(NackCodes.TargetNotExist, $"Simulator could not find reader {target}.");
         }
 
+        public void ConnectPassThrough(string stationName, string ip, int port, CommandStructure commStruct, ResponseStructure respStruct, ICommSpec commSpec)
+        {
+            if (Stations.Keys.Contains(stationName))
+            {
+                Stations[stationName].EnablePassthrough(ip, port, commStruct, respStruct, commSpec);
+            }
+            else if (Manipulators.Keys.Contains(stationName))
+            {
+                Manipulators[stationName].EnablePassthrough(ip, port, commStruct, respStruct, commSpec);
+            }
+            else
+            {
+                Readers[stationName].EnablePassthrough(ip, port, commStruct, respStruct, commSpec);
+            }
+
+        }
 
         private static string GetID(int length)
         {
@@ -193,39 +209,39 @@ namespace LayoutModels
             try 
             {
                 if (commandString == null)
-                    throw new NackResponse(NackCodes.CommandError);
+                    throw new NackResponse(NackCodes.CommandError, $"Simulator got a blank command.");
                 commands = Translators[commSpecName].TranslateCommandFromString(commandString); 
             }
             catch (IndexOutOfRangeException) 
             {
                 OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(new Job() { 
                     RawCommand = commandString }, 
-                    NackCodes.MissingArguments));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
+                    NackCodes.MissingArguments, $"Simulator caught Translator accessing unavailable index."));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseType.Nack},{NackCodes.MissingArguments}"));
                 return;
             }
             catch(System.ArgumentOutOfRangeException)
             {
                 OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(
                     new Job() { RawCommand = commandString }, 
-                    NackCodes.MissingArguments));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
+                    NackCodes.MissingArguments, $"Simulator caught Translator accessing unavailable Argument."));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseType.Nack},{NackCodes.MissingArguments}"));
                 return;
             }
             catch (System.Collections.Generic.KeyNotFoundException)
             {
                 OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(
                     new Job() { RawCommand = commandString },
-                    NackCodes.MissingArguments));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{NackCodes.MissingArguments}"));
+                    NackCodes.MissingArguments, $"Simulator caught Translator accessing unavailable Dictionary Key."));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseType.Nack},{NackCodes.MissingArguments}"));
                 return;
             }
             catch (NackResponse e)
             {
                 OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(
                     new Job() { RawCommand = commandString },
-                    e.Code));
-                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseTypes.Nack},{e.Code}"));
+                    e.Code, e.ErrorMessage));
+                OnLogEvent?.Invoke(this, new LogMessage("0", $"{ResponseType.Nack},{e.Code}"));
                 return;
             }
 
@@ -239,12 +255,12 @@ namespace LayoutModels
             }
             catch (NackResponse e)
             {
-                OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(commands.Last(), e.Code));
-                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Nack},{e.Code}"));
+                OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateNackResponse(commands.Last(), e.Code, e.ErrorMessage));
+                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseType.Nack},{e.Code}"));
                 return;
             }
-            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponseToString(commands.Last(), ResponseTypes.Ack, ""));
-            OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Ack}"));
+            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponseToString(commands.Last(), ResponseType.Ack, ""));
+            OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseType.Ack}"));
 
             string response = string.Empty;
             // RUN COMMAND
@@ -257,12 +273,12 @@ namespace LayoutModels
             }
             catch (ErrorResponse e)
             {
-                OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateErrorResponse(commands.Last(), e.Code));
-                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Error},{e.Code}"));
+                OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateErrorResponse(commands.Last(), e.Code, e.ErrorMessage));
+                OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseType.Error},{e.Code}"));
                 return;
             }
-            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponseToString(commands.Last(), ResponseTypes.Success, response));
-            OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseTypes.Success},{response}"));
+            OnResponseEvent?.Invoke(this, Translators[commSpecName].TranslateResponseToString(commands.Last(), ResponseType.Success, response));
+            OnLogEvent?.Invoke(this, new LogMessage(commands.Last().TransactionID, $"{ResponseType.Success},{response}"));
         }
         public override Task<CommandReply> ExecuteCommand_GRPC(Job request, ServerCallContext context)
         {
@@ -276,32 +292,32 @@ namespace LayoutModels
             }
             catch (System.Collections.Generic.KeyNotFoundException)
             {
-                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Nack},{ResponseTypes.Nack}"));
-                gRPCResponse.ResponseType = ResponseTypes.Nack;
-                gRPCResponse.Response = NackCodes.MissingArguments.ToString();
+                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseType.Nack},Key Not Found"));
+                gRPCResponse.ResponseType = ResponseType.Nack;
+                gRPCResponse.Response = $"{NackCodes.MissingArguments}: Key not found";
                 return Task.FromResult(gRPCResponse);
             }
             catch (NackResponse e)
             {
-                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Nack},{e.Code}"));
-                gRPCResponse.ResponseType = ResponseTypes.Nack;
-                gRPCResponse.Response = e.Code.ToString();
+                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseType.Nack},{e.Code}"));
+                gRPCResponse.ResponseType = ResponseType.Nack;
+                gRPCResponse.Response = $"{e.Code}: {e.ErrorMessage}";
                 return Task.FromResult(gRPCResponse);
             }
             catch (ErrorResponse e)
             {
-                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseTypes.Error},{e.Code}"));
-                gRPCResponse.ResponseType = ResponseTypes.Error;
-                gRPCResponse.Response = e.Code.ToString();
+                OnLogEvent?.Invoke(this, new LogMessage(request.TransactionID, $"{ResponseType.Error},{e.Code}"));
+                gRPCResponse.ResponseType = ResponseType.Error;
+                gRPCResponse.Response = $"{e.Code}: {e.ErrorMessage}";
                 return Task.FromResult(gRPCResponse);
             }
 
-            gRPCResponse.ResponseType = ResponseTypes.Success;
+            gRPCResponse.ResponseType = ResponseType.Success;
             gRPCResponse.Response = response;
 
             return Task.FromResult(gRPCResponse);
         }
-        private bool ConvertStringtoBool(string str)
+        private static bool ConvertStringtoBool(string str)
         {
             if (Int32.Parse(str) == 0)
                 return false;
@@ -314,7 +330,7 @@ namespace LayoutModels
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Checking {command.Action} for {command.Target}"));
 
             if (State != SimulatorState.ListeningCommands && command.Action != CommandType.StartSim)
-                throw new NackResponse(NackCodes.SimulatorNotStarted);
+                throw new NackResponse(NackCodes.SimulatorNotStarted, $"Simulator not started.");
 
             switch (command.Action)
             {
@@ -323,11 +339,11 @@ namespace LayoutModels
                     CheckStationExist(command.Arguments[(int) CommandArgType.TargetStation]);
 
                     if (!Manipulators[command.Target].Power)
-                        throw new NackResponse(NackCodes.PowerOff);
+                        throw new NackResponse(NackCodes.PowerOff, $"Simulator caught Manipulator {command.Target} power off.");
                     if (Manipulators[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Manipulator {command.Target} busy.");
                     if (!Manipulators[command.Target].EndEffectors.ContainsKey(Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector])))
-                        throw new NackResponse(NackCodes.EndEffectorMissing);
+                        throw new NackResponse(NackCodes.EndEffectorMissing, $"Simulator caught Manipulator {command.Target} does not have End Effector.");
                     break;
 
 
@@ -336,11 +352,11 @@ namespace LayoutModels
                     CheckStationExist(command.Arguments[(int)CommandArgType.TargetStation]);
 
                     if (!Manipulators[command.Target].Power)
-                        throw new NackResponse(NackCodes.PowerOff);
+                        throw new NackResponse(NackCodes.PowerOff, $"Simulator caught Manipulator {command.Target} power off.");
                     if (Manipulators[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Manipulator {command.Target} busy.");
                     if (!Manipulators[command.Target].EndEffectors.ContainsKey(Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector])))
-                        throw new NackResponse(NackCodes.EndEffectorMissing);
+                        throw new NackResponse(NackCodes.EndEffectorMissing, $"Simulator caught Manipulator {command.Target} does not have End Effector.");
                     break;
 
 
@@ -348,22 +364,22 @@ namespace LayoutModels
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     if (!Stations[command.Target].HasDoor)
-                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor, $"Simulator caught Station {command.Target} does not have a door.");
                     break;
 
                 case CommandType.DoorOpen:
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     if (!Stations[command.Target].HasDoor)
-                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor, $"Simulator caught Station {command.Target} does not have a door.");
                     break;
 
 
@@ -371,11 +387,11 @@ namespace LayoutModels
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     if (!Stations[command.Target].HasDoor)
-                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                        throw new NackResponse(NackCodes.StationDoesNotHaveDoor, $"Simulator caught Station {command.Target} does not have a door.");
                     break;
 
 
@@ -383,27 +399,30 @@ namespace LayoutModels
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     if (!Stations[command.Target].Mappable)
-                        throw new NackResponse(NackCodes.NotMappable);
+                        throw new NackResponse(NackCodes.NotMappable, $"Simulator caught Station {command.Target} not mappable.");
                     break;
 
 
                 case CommandType.Dock:
-                    if(command.Arguments[(int)CommandArgType.PodId].Length == 0)
+                    if (!command.Arguments.ContainsKey((int)CommandArgType.PodId) || (command.Arguments[(int)CommandArgType.PodId] == ""))
+                    {
                         command.Arguments[(int)CommandArgType.PodId] = Pods.Keys.Last();
+                        OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Chnaged pod ID to {Pods.Keys.Last()}"));
+                    }
 
                     CheckStationExist(command.Target);
                     CheckPodExist(command.Arguments[(int)CommandArgType.PodId]);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     if (!Stations[command.Target].PodDockable)
-                        throw new NackResponse(NackCodes.NotDockable);
+                        throw new NackResponse(NackCodes.NotDockable, $"Simulator caught Station {command.Target} not dockable.");
                     break;
 
 
@@ -411,11 +430,11 @@ namespace LayoutModels
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     if (!Stations[command.Target].PodDockable)
-                        throw new NackResponse(NackCodes.NotDockable);
+                        throw new NackResponse(NackCodes.NotDockable, $"Simulator caught Station {command.Target} not dockable.");
                     break;
 
                 case CommandType.Process0:
@@ -431,9 +450,9 @@ namespace LayoutModels
                     CheckStationExist(command.Target);
 
                     if (!Stations[command.Target].AcceptedCommands.Contains(command.RawAction) && commandLock)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find {command.RawAction} in accepted list of commands for this station.");
                     if (Stations[command.Target].Busy)
-                        throw new NackResponse(NackCodes.Busy);
+                        throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                     break;
 
 
@@ -448,20 +467,20 @@ namespace LayoutModels
                     if (Manipulators.TryGetValue(command.Target, out Manipulator? manipulator))
                     {
                         if (!manipulator.Power)
-                            throw new NackResponse(NackCodes.PowerOff);
+                            throw new NackResponse(NackCodes.PowerOff, $"Simulator caught Manipulator {command.Target} power off.");
                         if (manipulator.Busy)
-                            throw new NackResponse(NackCodes.Busy);
+                            throw new NackResponse(NackCodes.Busy, $"Simulator caught Manipulator {command.Target} busy.");
                     }
                     else if (Stations.TryGetValue(command.Target, out Station? station))
                     {
                         if (station.Busy)
-                            throw new NackResponse(NackCodes.Busy);
+                            throw new NackResponse(NackCodes.Busy, $"Simulator caught Station {command.Target} busy.");
                         if (!station.HasDoor)
-                            throw new NackResponse(NackCodes.StationDoesNotHaveDoor);
+                            throw new NackResponse(NackCodes.StationDoesNotHaveDoor, $"Simulator caught Station {command.Target} does not have door.");
                     }
                     else
                     {
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator could not find station {command.Target}");
                     }
                     break;
 
@@ -477,21 +496,24 @@ namespace LayoutModels
 
 
                 case CommandType.Payload:
-                    if (!command.Arguments.Keys.Contains((int) CommandArgType.PodId))
-                        command.Arguments[(int) CommandArgType.PodId] = Pods.Keys.Last();
+                    if (!command.Arguments.ContainsKey((int)CommandArgType.PodId) || (command.Arguments[(int)CommandArgType.PodId] == ""))
+                    {
+                        command.Arguments[(int)CommandArgType.PodId] = Pods.Keys.Last();
+                        OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Chnaged pod ID to {Pods.Keys.Last()}"));
+                    }
 
                     CheckPodExist(command.Arguments[(int)CommandArgType.PodId]);
 
                     int slot = Int32.Parse(command.Arguments[(int)CommandArgType.Slot]);
 
                     if (slot < 1)
-                        throw new NackResponse(NackCodes.CommandError);
+                        throw new NackResponse(NackCodes.CommandError, $"Simulator cannot create payload in slot less than 1.");
 
                     while (Pods[command.Arguments[(int)CommandArgType.PodId]].slots.ContainsKey(slot))
                     {
                         slot++;
                         if (slot > Pods[command.Arguments[(int)CommandArgType.PodId]].Capacity)
-                            throw new NackResponse(NackCodes.CommandError);
+                            throw new NackResponse(NackCodes.CommandError, $"Simulator cannot create payload in slot greater than station capacity.");
                         
                         command.Arguments[(int)CommandArgType.Slot] = slot.ToString();
                     }
@@ -506,44 +528,44 @@ namespace LayoutModels
             }
 
             if (State == SimulatorState.Paused)
-                throw new ErrorResponse(ErrorCodes.SimulatorStopped);
+                throw new ErrorResponse(ErrorCodes.SimulatorStopped, $"Simulator was stopped.");
 
             OnLogEvent?.Invoke(this, new LogMessage(command.TransactionID, $"Processing {command.Action} for {command.Target}"));
             switch (command.Action)
             {
                 case CommandType.Pick:
-                    Manipulators[command.Target].Pick(command.TransactionID, Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector]), Stations[command.Arguments[(int)CommandArgType.TargetStation]], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
+                    Manipulators[command.Target].Pick(command, Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector]), Stations[command.Arguments[(int)CommandArgType.TargetStation]], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
                     break;
 
                 case CommandType.Place:
-                    Manipulators[command.Target].Place(command.TransactionID, Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector]), Stations[command.Arguments[(int)CommandArgType.TargetStation]], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
+                    Manipulators[command.Target].Place(command, Int32.Parse(command.Arguments[(int)CommandArgType.EndEffector]), Stations[command.Arguments[(int)CommandArgType.TargetStation]], Int32.Parse(command.Arguments[(int)CommandArgType.Slot]));
                     break;
 
                 case CommandType.Door:
-                    Stations[command.Target].Door(command.TransactionID, ConvertStringtoBool(command.Arguments[(int)CommandArgType.DoorStatus]));
+                    Stations[command.Target].Door(command, ConvertStringtoBool(command.Arguments[(int)CommandArgType.DoorStatus]));
                     break;
 
                 case CommandType.DoorOpen:
-                    Stations[command.Target].Door(command.TransactionID, false);
+                    Stations[command.Target].Door(command, false);
                     break;
 
 
                 case CommandType.DoorClose:
-                    Stations[command.Target].Door(command.TransactionID, true);
+                    Stations[command.Target].Door(command, true);
                     break;
 
                 case CommandType.Map:
-                    List<int> mapData = Stations[command.Target].OpenDoorAndMap(command.TransactionID).Cast<int>().ToList();
+                    List<int> mapData = Stations[command.Target].OpenDoorAndMap(command).Cast<int>().ToList();
                     response = string.Join("", mapData);
                     break;
 
                 case CommandType.Dock:
-                    Stations[command.Target].Dock(command.TransactionID, Pods[command.Arguments[(int)CommandArgType.PodId]]);
+                    Stations[command.Target].Dock(command, Pods[command.Arguments[(int)CommandArgType.PodId]]);
                     Pods.Remove(command.Arguments[(int)CommandArgType.PodId]);
                     break;
 
                 case CommandType.Undock:
-                    Pod outgoingPod = Stations[command.Target].UnDock(command.TransactionID);
+                    Pod outgoingPod = Stations[command.Target].UnDock(command);
                     Pods.Add(outgoingPod.PodID, outgoingPod);
                     break;
 
@@ -557,31 +579,31 @@ namespace LayoutModels
                 case CommandType.Process7:
                 case CommandType.Process8:
                 case CommandType.Process9:
-                    Stations[command.Target].Process(command.TransactionID);
+                    Stations[command.Target].Process(command);
                     break;
 
                 case CommandType.Power:
                     if (ConvertStringtoBool(command.Arguments[(int)CommandArgType.PowerStatus]))
-                        Manipulators[command.Target].PowerOn(command.TransactionID);
+                        Manipulators[command.Target].PowerOn(command);
                     else
-                        Manipulators[command.Target].PowerOff(command.TransactionID);
+                        Manipulators[command.Target].PowerOff(command);
                     break;
 
                 case CommandType.PowerOn:
-                    Manipulators[command.Target].PowerOn(command.TransactionID);
+                    Manipulators[command.Target].PowerOn(command);
                     break;
 
                 case CommandType.PowerOff:
-                    Manipulators[command.Target].PowerOff(command.TransactionID);
+                    Manipulators[command.Target].PowerOff(command);
                     break;
 
                 case CommandType.Home:
                     if (Manipulators.TryGetValue(command.Target, out Manipulator? manipulator))
-                        manipulator.Home(command.TransactionID);
+                        manipulator.Home(command);
                     else if (Stations.TryGetValue(command.Target, out Station? station))
-                        station.Door(command.TransactionID, true);
+                        station.Door(command, true);
                     else
-                        throw new ErrorResponse(ErrorCodes.ProgramError);
+                        throw new ErrorResponse(ErrorCodes.ProgramError, $"Simulator could not identify target {command.Target} to home.");
                     break;
 
 

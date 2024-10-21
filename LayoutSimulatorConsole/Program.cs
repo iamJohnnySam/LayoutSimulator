@@ -16,20 +16,27 @@ simulator.OnLogEvent += Simulator_OnLogEvent;
 simulator.OnResponseEvent += Simulator_OnErrorEvent;
 
 simulator.AddCommSpec("commonCommSpec",
-    new CommandStructure("<", ">", ",:", 0, 1, 2, 3, false, true),
+    new CommandStructure("<", ">", ",:", 0, 1, 2, 3, false, true, new Dictionary<CommandArgType, string>()),
     new ResponseStructure("<", ">", ",", 0, 1, -1, 2, 3, false, true, "valcmd"),
-    new ResponseStructure("<", ">", ",", 0, 2, -1, 1, 3, false, true, ""),
+    new ResponseStructure("<", ">", ",", 0, 2, -1, 1, 3, false, true),
     new UniversalCommSpec());
 Console.WriteLine($"Command Specification, commonCommSpec was added on port 8000");
 // Add more comm specs and ports if direct connection to any stations are required...
 
+simulator.ConnectPassThrough("R1", "127.0.0.1", 12800,
+    new CommandStructure("<", ">", ",", 0, 1, 2, 3, true, true, new Dictionary<CommandArgType, string>() 
+    { 
+        { CommandArgType.EndEffector, "H" } 
+    }),
+    new ResponseStructure("<", ">", ",", 0, 1, -1, -1, 2, true, true),
+    new RobotCommSpec());
 
 Server grpcServer = new()
 {
     Services = { LayoutSimulator.BindService(simulator) },
     Ports = { new ServerPort("localhost", 50051, ServerCredentials.Insecure) }
 };
-grpcServer.Start();
+// grpcServer.Start();
 Console.WriteLine($"gRPC server listening on port 50051");
 
 
