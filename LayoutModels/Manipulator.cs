@@ -91,7 +91,7 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.PayloadNotAvailable, $"Manipulator {StationID} slot {slot} access on was empty.");
 
             Busy = true;
-            string response = ProcessCommand(job);
+            string response = PassThroughCommand(job);
 
             GoToStation(station.StationID);
 
@@ -130,7 +130,7 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable, $"Manipulator {StationID} slot {slot} access on was empty.");
 
             Busy = true;
-            string response = ProcessCommand(job);
+            string response = PassThroughCommand(job);
 
             GoToStation(station.StationID);
 
@@ -148,7 +148,7 @@ namespace LayoutModels
         public void Home(Job job)
         {
             Busy = true;
-            string response = ProcessCommand(job);
+            string response = PassThroughCommand(job);
 
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Manipulator {StationID} Homing"));
 
@@ -162,7 +162,7 @@ namespace LayoutModels
 
         public void PowerOff(Job job)
         {
-            string response = ProcessCommand(job);
+            string response = PassThroughCommand(job);
             Power = false;
             if (Busy)
                 throw new ErrorResponse(ErrorCodes.PowerOffWhileBusy, $"Manipulator {StationID} was busy.");
@@ -171,7 +171,7 @@ namespace LayoutModels
 
         public void PowerOn(Job job)
         {
-            string response = ProcessCommand(job);
+            string response = PassThroughCommand(job);
             if (Busy)
                 throw new ErrorResponse(ErrorCodes.ProgramError, $"Manipulator {StationID} was busy.");
 

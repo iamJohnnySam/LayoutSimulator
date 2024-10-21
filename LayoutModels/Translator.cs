@@ -268,14 +268,29 @@ namespace LayoutModels
             else
                 AddArgumentToList(response, ComS.IndexTarget, command.Target);
 
-            List<CommandArgType> commandArgs = CommSpec.CommandArgs[actionString];
+            List<CommandArgType> commandArgs;
+            try
+            {
+                commandArgs = CommSpec.CommandArgs[actionString];
+            }
+            catch (System.Collections.Generic.KeyNotFoundException)
+            {
+                throw new NackResponse(NackCodes.CommSpecError, $"Translator caught {actionString} is not in Comm Spec.");
+            }
             for (int i = 0; i < commandArgs.Count; i++)
             {
                 string prefix = string.Empty;
                 if (ComS.Prefixs.ContainsKey(commandArgs[i]))
                     prefix = ComS.Prefixs[commandArgs[i]];
 
-                AddArgumentToList(response, ComS.IndexValueStart + i, $"{prefix}{command.Arguments[(int)commandArgs[i]]}");
+                if (commandArgs[i] == CommandArgType.TargetStation && CommSpec.StationMapping.ContainsKey(command.Target))
+                {
+                    AddArgumentToList(response, ComS.IndexValueStart + i, $"{prefix}{CommSpec.StationMapping[command.Arguments[(int)commandArgs[i]]]}");
+                }
+                else
+                {
+                    AddArgumentToList(response, ComS.IndexValueStart + i, $"{prefix}{command.Arguments[(int)commandArgs[i]]}");
+                }
             }
 
             string responseString = ConvertListToString(response, ComS.Delimiter);

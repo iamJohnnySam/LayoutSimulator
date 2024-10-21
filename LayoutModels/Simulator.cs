@@ -584,9 +584,15 @@ namespace LayoutModels
 
                 case CommandType.Power:
                     if (ConvertStringtoBool(command.Arguments[(int)CommandArgType.PowerStatus]))
+                    {
+                        command.Action = CommandType.PowerOn;
                         Manipulators[command.Target].PowerOn(command);
+                    }
                     else
+                    {
+                        command.Action = CommandType.PowerOff;
                         Manipulators[command.Target].PowerOff(command);
+                    }
                     break;
 
                 case CommandType.PowerOn:

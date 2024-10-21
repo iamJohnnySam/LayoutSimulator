@@ -36,7 +36,7 @@ Server grpcServer = new()
     Services = { LayoutSimulator.BindService(simulator) },
     Ports = { new ServerPort("localhost", 50051, ServerCredentials.Insecure) }
 };
-// grpcServer.Start();
+grpcServer.Start();
 Console.WriteLine($"gRPC server listening on port 50051");
 
 

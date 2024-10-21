@@ -9,7 +9,8 @@ namespace Communicator
 {
     public class TCPClient
     {
-        public event EventHandler<string>? OnMessageReceived;
+        public delegate void MessageReceivedEventHandler(string message);
+        public event MessageReceivedEventHandler OnMessageReceived;
 
         private string _serverIp;
         private int _serverPort;
@@ -28,7 +29,7 @@ namespace Communicator
             isConnected = false; // Initial state: not connected
         }
 
-        public async Task StartClientAsync(bool startListening)
+        public async Task StartClientAsync()
         {
             await Task.Run(async () =>
             {
@@ -46,8 +47,7 @@ namespace Communicator
 
                         Console.WriteLine("Connected to server");
 
-                        if (startListening)
-                            await ReceiveDataAsync();
+                        await ReceiveDataAsync();
                     }
                     catch (SocketException)
                     {
@@ -60,43 +60,33 @@ namespace Communicator
 
         private async Task ReceiveDataAsync()
         {
+            byte[] buffer = new byte[1024]; // Buffer to store received data
             try
             {
-                string message;
-                while (isConnected && (message = await _reader.ReadLineAsync()) != null)
+                while (isConnected)
                 {
-                    OnMessageReceived?.Invoke(this, message);
-                    Console.WriteLine($"Received: {message}");
+                    int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length); // Read data asynchronously
+                    if (bytesRead > 0)
+                    {
+                        string message = Encoding.UTF8.GetString(buffer, 0, bytesRead); // Convert bytes to string
+                        RunOnMessageReceived(message);
+                    }
+                    else
+                    {
+                        // No data received, this could mean the connection was closed by the server
+                        Console.WriteLine("Connection closed by server.");
+                        isConnected = false; // Mark as disconnected
+                    }
                 }
             }
-            catch (IOException)
+            catch (IOException ex)
             {
                 if (isConnected)
                 {
-                    Console.WriteLine("Connection lost. Waiting to reconnect...");
+                    Console.WriteLine($"Connection lost due to error: {ex.Message}. Waiting to reconnect...");
                     isConnected = false; // Mark as disconnected
                 }
             }
-        }
-
-        public string ReceiveData()
-        {
-            try
-            {
-                if (_reader != null) {
-                    string? message = _reader.ReadLine();
-                    return message ?? "";
-                }
-            }
-            catch (IOException)
-            {
-                if (isConnected)
-                {
-                    Console.WriteLine("Connection lost. Waiting to reconnect...");
-                    isConnected = false;
-                }
-            }
-            return "CONNECTION ERROR";
         }
 
         public async Task SendDataAsync(string messageToSend)
@@ -162,6 +152,11 @@ namespace Communicator
 
                 Console.WriteLine("Connection closed.");
             }
+        }
+
+        public virtual void RunOnMessageReceived(string message)
+        {
+            OnMessageReceived?.Invoke(message); // Raise the event if there are subscribers
         }
     }
 }

@@ -33,7 +33,7 @@ namespace LayoutModels
 
         public void ProcessWait(float SecsTime)
         {
-            if (!EnablePassThrough || (PassThroughClient != null && PassThroughClient.isConnected))
+            if (!EnablePassThrough || (PassThroughClient != null && !PassThroughClient.isConnected))
                Thread.Sleep((int)(SecsTime * 1000));
         }
 
@@ -44,12 +44,12 @@ namespace LayoutModels
 
             Translator = new Translator(comS, resS, commSpec);
 
-            _ = PassThroughClient.StartClientAsync(true);
+            _ = PassThroughClient.StartClientAsync();
 
-            PassThroughClient.OnMessageReceived += PassThroughClient_OnMessageReceived;
+            PassThroughClient.OnMessageReceived += PassThroughClient_OnMessageReceived1; ;
         }
 
-        private void PassThroughClient_OnMessageReceived(object? sender, string recievedMessage)
+        private void PassThroughClient_OnMessageReceived1(string recievedMessage)
         {
             if (Translator != null)
             {
@@ -57,7 +57,6 @@ namespace LayoutModels
 
                 RecievedResponses[transactionID][responseType] = reply;
             }
-                
         }
 
         public void DiablePassthrough()
@@ -66,19 +65,20 @@ namespace LayoutModels
             PassThroughClient = null;
         }
 
-        public string ProcessCommand(Job job)
+        public string PassThroughCommand(Job job)
         {
             if (Translator != null && PassThroughClient != null && PassThroughClient.isConnected)
             {
                 string tempTransactionID = IndependentTransactionID++.ToString("D3");
+                if (job.TransactionID == string.Empty)
+                {
+                    job.TransactionID = tempTransactionID;
+                }
 
                 if (IndependentTransactionID < 999)
                     IndependentTransactionID = 1;
 
                 PassThroughClient.SendData(Translator.TranslateCommandToString(job));
-                string recievedMessage = PassThroughClient.ReceiveData();
-
-                OnLogEvent?.Invoke(this, new LogMessage($"External {StationID} Receieved {recievedMessage}"));
 
                 stopwatch.Start();
                 TimeSpan timeout = TimeSpan.FromMinutes(1);
@@ -113,6 +113,7 @@ namespace LayoutModels
                         OnLogEvent?.Invoke(this, new LogMessage($"External {StationID} Timedout"));
                         break;
                     }
+                    Thread.Sleep(100);
                 }
                 throw new ErrorResponse(ErrorCodes.TimedOut, "Waiting for command for 1 minute");
             }

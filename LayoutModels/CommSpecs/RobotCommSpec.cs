@@ -13,12 +13,16 @@ namespace LayoutModels.CommSpecs
         public Dictionary<String, List<CommandType>> CommandMap { get; set; } = new()
         {
             { "GETS", new List<CommandType> { CommandType.Pick } },
-            { "PUTS", new List<CommandType> { CommandType.Place } }
+            { "PUTS", new List<CommandType> { CommandType.Place } },
+            { "SERV", new List<CommandType> { CommandType.PowerOn } },
+            { "STOP", new List<CommandType> { CommandType.PowerOff } }
         };
         public Dictionary<String, List<CommandArgType>> CommandArgs { get; set; } = new()
         {
             { "GETS", new List<CommandArgType> { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot } },
-            { "PUTS", new List<CommandArgType> { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot } }
+            { "PUTS", new List<CommandArgType> { CommandArgType.EndEffector, CommandArgType.TargetStation, CommandArgType.Slot } },
+            { "SERV", new List<CommandArgType> { } },
+            { "STOP", new List<CommandArgType> { } }
         };
         public Dictionary<ResponseType, String> ResponseMap { get; set; } = new()
         {
