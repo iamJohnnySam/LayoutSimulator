@@ -69,7 +69,8 @@ namespace Communicator
                     if (bytesRead > 0)
                     {
                         string message = Encoding.UTF8.GetString(buffer, 0, bytesRead); // Convert bytes to string
-                        RunOnMessageReceived(message);
+                        Console.WriteLine(message);
+                        OnMessageReceived?.Invoke(message); 
                     }
                     else
                     {
@@ -152,11 +153,6 @@ namespace Communicator
 
                 Console.WriteLine("Connection closed.");
             }
-        }
-
-        public virtual void RunOnMessageReceived(string message)
-        {
-            OnMessageReceived?.Invoke(message); // Raise the event if there are subscribers
         }
     }
 }

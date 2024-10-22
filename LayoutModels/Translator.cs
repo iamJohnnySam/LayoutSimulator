@@ -310,6 +310,7 @@ namespace LayoutModels
         }
         public (string, ResponseType, string) TranslateResponseToMessage(string commandString)
         {
+            Console.WriteLine(commandString);
             int pFrom = 0;
             if (RspS.StartCharacter != null)
                 pFrom = commandString.IndexOf(RspS.StartCharacter) + RspS.StartCharacter.Length;

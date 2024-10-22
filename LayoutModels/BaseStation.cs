@@ -51,11 +51,12 @@ namespace LayoutModels
 
         private void PassThroughClient_OnMessageReceived1(string recievedMessage)
         {
+            Console.WriteLine("Here");
             if (Translator != null)
             {
                 (string transactionID, ResponseType responseType, string reply) = Translator.TranslateResponseToMessage(recievedMessage);
 
-                RecievedResponses[transactionID][responseType] = reply;
+                RecievedResponses[transactionID] = new Dictionary<ResponseType, string> { { responseType, reply } };
             }
         }
 
@@ -69,38 +70,35 @@ namespace LayoutModels
         {
             if (Translator != null && PassThroughClient != null && PassThroughClient.isConnected)
             {
-                string tempTransactionID = IndependentTransactionID++.ToString("D3");
-                if (job.TransactionID == string.Empty)
-                {
-                    job.TransactionID = tempTransactionID;
-                }
+                Job tempJob = new Job(job);
+                tempJob.TransactionID = IndependentTransactionID++.ToString("D3");
 
-                if (IndependentTransactionID < 999)
+                if (IndependentTransactionID > 999)
                     IndependentTransactionID = 1;
 
-                PassThroughClient.SendData(Translator.TranslateCommandToString(job));
+                PassThroughClient.SendData(Translator.TranslateCommandToString(tempJob));
 
                 stopwatch.Start();
                 TimeSpan timeout = TimeSpan.FromMinutes(1);
 
                 while (true)
                 {
-                    if (RecievedResponses.TryGetValue(tempTransactionID, out Dictionary<ResponseType, string> value))
+                    if (RecievedResponses.TryGetValue(tempJob.TransactionID, out Dictionary<ResponseType, string>? value))
                     {
-                        string reply;
+                        string? reply;
                         if (value.TryGetValue(ResponseType.Success, out reply))
                         {
-                            RecievedResponses.Remove(tempTransactionID);
+                            RecievedResponses.Remove(tempJob.TransactionID);
                             return reply;
                         }
                         else if (value.TryGetValue(ResponseType.Nack, out reply))
                         {
-                            RecievedResponses.Remove(tempTransactionID);
+                            RecievedResponses.Remove(tempJob.TransactionID);
                             throw new NackResponse(NackCodes.ModuleNack, reply);
                         }
                         else if (value.TryGetValue(ResponseType.Error, out reply))
                         {
-                            RecievedResponses.Remove(tempTransactionID);
+                            RecievedResponses.Remove(tempJob.TransactionID);
                             throw new ErrorResponse(ErrorCodes.ModuleError, reply);
                         }
                         else
