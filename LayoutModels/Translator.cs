@@ -277,14 +277,16 @@ namespace LayoutModels
             {
                 throw new NackResponse(NackCodes.CommSpecError, $"Translator caught {actionString} is not in Comm Spec.");
             }
+
             for (int i = 0; i < commandArgs.Count; i++)
             {
                 string prefix = string.Empty;
                 if (ComS.Prefixs.ContainsKey(commandArgs[i]))
                     prefix = ComS.Prefixs[commandArgs[i]];
 
-                if (commandArgs[i] == CommandArgType.TargetStation && CommSpec.StationMapping.ContainsKey(command.Target))
+                if (commandArgs[i] == CommandArgType.TargetStation && CommSpec.StationMapping.ContainsKey(command.Arguments[(int)CommandArgType.TargetStation]))
                 {
+
                     AddArgumentToList(response, ComS.IndexValueStart + i, $"{prefix}{CommSpec.StationMapping[command.Arguments[(int)commandArgs[i]]]}");
                 }
                 else
@@ -310,7 +312,6 @@ namespace LayoutModels
         }
         public (string, ResponseType, string) TranslateResponseToMessage(string commandString)
         {
-            Console.WriteLine(commandString);
             int pFrom = 0;
             if (RspS.StartCharacter != null)
                 pFrom = commandString.IndexOf(RspS.StartCharacter) + RspS.StartCharacter.Length;

@@ -14,7 +14,7 @@ namespace LayoutModels
 {
     public class BaseStation
     {
-        public event EventHandler<LogMessage>? OnLogEvent;
+        public event EventHandler<LogMessage>? OnBaseLogEvent;
 
         public string StationID { get; set; } = "ST";
         public List<string> Locations { get; set; } = [];
@@ -46,12 +46,18 @@ namespace LayoutModels
 
             _ = PassThroughClient.StartClientAsync();
 
-            PassThroughClient.OnMessageReceived += PassThroughClient_OnMessageReceived1; ;
+            PassThroughClient.OnMessageReceived += PassThroughClient_OnMessageReceived;
+            PassThroughClient.OnLogEvent += PassThroughClient_OnLogEvent;
+
         }
 
-        private void PassThroughClient_OnMessageReceived1(string recievedMessage)
+        private void PassThroughClient_OnLogEvent(object? sender, string e)
         {
-            Console.WriteLine("Here");
+            OnBaseLogEvent?.Invoke(this, new LogMessage(e));
+        }
+
+        private void PassThroughClient_OnMessageReceived(string recievedMessage)
+        {
             if (Translator != null)
             {
                 (string transactionID, ResponseType responseType, string reply) = Translator.TranslateResponseToMessage(recievedMessage);
@@ -94,11 +100,13 @@ namespace LayoutModels
                         else if (value.TryGetValue(ResponseType.Nack, out reply))
                         {
                             RecievedResponses.Remove(tempJob.TransactionID);
+                            Busy = false;
                             throw new NackResponse(NackCodes.ModuleNack, reply);
                         }
                         else if (value.TryGetValue(ResponseType.Error, out reply))
                         {
                             RecievedResponses.Remove(tempJob.TransactionID);
+                            Busy = false;
                             throw new ErrorResponse(ErrorCodes.ModuleError, reply);
                         }
                         else
@@ -108,7 +116,7 @@ namespace LayoutModels
                     }
                     if (stopwatch.Elapsed >= timeout)
                     {
-                        OnLogEvent?.Invoke(this, new LogMessage($"External {StationID} Timedout"));
+                        OnBaseLogEvent?.Invoke(this, new LogMessage($"External {StationID} Timedout"));
                         break;
                     }
                     Thread.Sleep(100);
@@ -119,7 +127,6 @@ namespace LayoutModels
             {
                 return string.Empty;
             }
-            // return (ResponseType.Nack, string.Empty);
         }
     }
 }

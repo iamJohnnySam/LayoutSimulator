@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -22,7 +23,6 @@ namespace LayoutModels
         public ManipulatorArmStates ArmState { get; private set; } = ManipulatorArmStates.retracted;
         public string CurrentLocation { get; private set; } = "home";
 
-        // Todo: convert to state models
 
         private bool power = false;
         public bool Power { 
@@ -44,6 +44,13 @@ namespace LayoutModels
             MotionTime = motionTime;
             ExtendTime = extendTime;
             RetractTime = retractTime;
+
+            OnBaseLogEvent += Manipulator_OnBaseLogEvent;
+        }
+
+        private void Manipulator_OnBaseLogEvent(object? sender, LogMessage e)
+        {
+            OnLogEvent?.Invoke(this, e);
         }
 
         private void GoToStation(string stationID)

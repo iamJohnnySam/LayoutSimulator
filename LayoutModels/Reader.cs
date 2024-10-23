@@ -21,6 +21,8 @@ namespace LayoutModels
             TargetStation = targetStation;
             SlotID = slot;
             ReadSlot = true;
+
+            OnBaseLogEvent += Reader_OnBaseLogEvent;
         }
 
         public Reader(string readerID, Station targetStation)
@@ -33,7 +35,15 @@ namespace LayoutModels
                 ReadSlot = true;
             else
                 ReadSlot = false;
+
+            OnBaseLogEvent += Reader_OnBaseLogEvent;
         }
+
+        private void Reader_OnBaseLogEvent(object? sender, LogMessage e)
+        {
+            OnLogEvent?.Invoke(this, e);
+        }
+
 
         public string ReadID(string transactionID)
         {

@@ -110,6 +110,12 @@ namespace LayoutModels
             // TODO: Auto Open if Pod Docked
 
             OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Created."));
+            OnBaseLogEvent += Station_OnBaseLogEvent;
+        }
+
+        private void Station_OnBaseLogEvent(object? sender, LogMessage e)
+        {
+            OnLogEvent?.Invoke(this, e);
         }
 
         public bool CheckPayloadCompatible(Payload payload)
