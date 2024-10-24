@@ -1,0 +1,11 @@
+﻿<div class="pod-container">
+    <h5>Pod ID: @Pod.PodID</h5>
+    <p><strong>Number of Slots:</strong> @Pod.Capacity</p>
+    <!-- Add more details as needed -->
+</div>
+
+
+@code {
+    [Parameter]
+    public Pod Pod { get; set; }
+}

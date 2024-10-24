@@ -11,10 +11,28 @@ using static System.Collections.Specialized.BitVector32;
 
 namespace LayoutModels
 {
+    public enum ManipulatorArmStates
+    {
+        extended,
+        retracted
+    }
+
     public class Manipulator : BaseStation, ITarget
     {
+        // EVENTS
         public event EventHandler<LogMessage>? OnLogEvent;
+        public event EventHandler<bool>? OnPowerEvent;
+        public event EventHandler<bool>? ArmExtendEvent;
+        public event EventHandler<bool>? ArmRetractEvent;
+        public event EventHandler<string>? OnBegingLocationChangeEvent;
+        public event EventHandler<string>? OnLocationChangeEvent;
+        public event EventHandler<(int, string, Payload)>? OnPickUp;
+        public event EventHandler<(int, string)>? OnDropOff;
 
+        // VARIABLES
+        private bool power = false;
+
+        // PROPERTIES
         public Dictionary<int, Dictionary<string, Payload>> EndEffectors { get; private set; }
         public List<string> EndEffectorTypes { get; set; }
         public float MotionTime { get; private set; }
@@ -22,9 +40,6 @@ namespace LayoutModels
         public float RetractTime { get; private set; }
         public ManipulatorArmStates ArmState { get; private set; } = ManipulatorArmStates.retracted;
         public string CurrentLocation { get; private set; } = "home";
-
-
-        private bool power = false;
         public bool Power { 
             get { return power; }
             private set
@@ -34,7 +49,7 @@ namespace LayoutModels
             }
         }
 
-
+        // CONSTRUCTORS
         public Manipulator(string manipulatorID, Dictionary<int, Dictionary<string, Payload>> endEffectors, List<string> endEffectorsTypes, List<string> locations, float motionTime, float extendTime, float retractTime)
         {
             StationID = manipulatorID;
@@ -48,33 +63,40 @@ namespace LayoutModels
             OnBaseLogEvent += Manipulator_OnBaseLogEvent;
         }
 
+        // EVENT HANDLING
         private void Manipulator_OnBaseLogEvent(object? sender, LogMessage e)
         {
             OnLogEvent?.Invoke(this, e);
         }
 
+        // INTERNAL PROCESSES
         private void GoToStation(string stationID)
         {
             if (CurrentLocation != stationID)
             {
+                OnBegingLocationChangeEvent?.Invoke(this, stationID);
                 ProcessWait(MotionTime);
                 CurrentLocation = stationID;
+                OnLocationChangeEvent?.Invoke(this, stationID);
             }
         }
-
         private void Extend()
         {
+            ArmRetractEvent?.Invoke(this, false);
             ProcessWait(ExtendTime);
             ArmState = ManipulatorArmStates.extended;
+            ArmExtendEvent?.Invoke(this, true);
         }
-
         private void Retract()
         {
+            ArmExtendEvent?.Invoke(this, false);
             ProcessWait(RetractTime);
             ArmState = ManipulatorArmStates.retracted;
+            ArmRetractEvent?.Invoke(this, true);
         }
 
-        public void Pick(Job job, int endEffector, Station station, int slot)
+        // COMMANDS
+        public string Pick(Job job, int endEffector, Station station, int slot)
         {
             if (EndEffectors[endEffector].ContainsKey("payload"))
                 throw new ErrorResponse(ErrorCodes.PayloadAlreadyAvailable, $"Manipulator {StationID} End Effector {endEffector} did not contain payload.");
@@ -110,10 +132,10 @@ namespace LayoutModels
 
             station.StopStationAccess();
             Busy = false;
-
+            OnPickUp?.Invoke(this, (endEffector, station.StationID, EndEffectors[endEffector]["payload"]));
+            return response;
         }
-
-        public void Place(Job job, int endEffector, Station station, int slot)
+        public string Place(Job job, int endEffector, Station station, int slot)
         {
             if (!EndEffectors[endEffector].ContainsKey("payload"))
                 throw new ErrorResponse(ErrorCodes.PayloadNotAvailable, $"Manipulator {StationID} End Effector {endEffector} did not contain payload.");
@@ -150,9 +172,10 @@ namespace LayoutModels
 
             station.StopStationAccess();
             Busy = false;
+            OnDropOff?.Invoke(this, (endEffector, station.StationID));
+            return response;
         }
-
-        public void Home(Job job)
+        public string Home(Job job)
         {
             Busy = true;
             string response = PassThroughCommand(job);
@@ -165,18 +188,19 @@ namespace LayoutModels
             GoToStation("home");
             Busy = false;
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Manipulator {StationID} at Home"));
+            return response;
         }
-
-        public void PowerOff(Job job)
+        public string PowerOff(Job job)
         {
             string response = PassThroughCommand(job);
             Power = false;
             if (Busy)
                 throw new ErrorResponse(ErrorCodes.PowerOffWhileBusy, $"Manipulator {StationID} was busy.");
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Manipulator {StationID} Off."));
+            OnPowerEvent?.Invoke(this, Power);
+            return response;
         }
-
-        public void PowerOn(Job job)
+        public string PowerOn(Job job)
         {
             string response = PassThroughCommand(job);
             if (Busy)
@@ -184,8 +208,8 @@ namespace LayoutModels
 
             Power = true;
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Manipulator {StationID} On"));
+            OnPowerEvent?.Invoke(this, Power);
+            return response;
         }
-
-
     }
 }

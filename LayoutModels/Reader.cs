@@ -9,12 +9,15 @@ namespace LayoutModels
 {
     public class Reader: BaseStation, ITarget
     {
+        // EVENTS
         public event EventHandler<LogMessage>? OnLogEvent;
 
+        // PROPERTIES
         public Station TargetStation { get; set; }
         public int SlotID { get; set; }
         private bool ReadSlot { get; set; }
 
+        // CONSTRUCTORS
         public Reader(string readerID, Station targetStation, int slot) 
         {
             StationID = readerID;
@@ -22,9 +25,9 @@ namespace LayoutModels
             SlotID = slot;
             ReadSlot = true;
 
+            targetStation.PairReader(readerID, slot);
             OnBaseLogEvent += Reader_OnBaseLogEvent;
         }
-
         public Reader(string readerID, Station targetStation)
         {
             StationID = readerID;
@@ -36,15 +39,20 @@ namespace LayoutModels
             else
                 ReadSlot = false;
 
+            targetStation.PairReader(readerID);
             OnBaseLogEvent += Reader_OnBaseLogEvent;
         }
 
+        // EVENT HANDLING
         private void Reader_OnBaseLogEvent(object? sender, LogMessage e)
         {
             OnLogEvent?.Invoke(this, e);
         }
 
+        // INTERNAL COMMANDS
+        public void CheckAvailable() { }
 
+        // COMMANDS
         public string ReadID(string transactionID)
         {
             string value;
@@ -65,7 +73,5 @@ namespace LayoutModels
             }
             return value;
         }
-
-        public void CheckAvailable(){ }
     }
 }

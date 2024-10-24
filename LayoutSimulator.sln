@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LayoutSimulatorConsole", "L
 EndProject
 Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "TestApplication", "TestApplication\TestApplication.pyproj", "{FAE4DC67-DA8A-4A00-A2FD-D90BC0807A46}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LayoutSimulatorBlazor", "LayoutSimulatorBlazor\LayoutSimulatorBlazor\LayoutSimulatorBlazor.csproj", "{C58CBF63-6D37-4195-B55D-DD898129BEF8}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LayoutSimulatorBlazor.Client", "LayoutSimulatorBlazor\LayoutSimulatorBlazor.Client\LayoutSimulatorBlazor.Client.csproj", "{CFA2F8C7-0C28-4C2D-B9E4-AAB0AE69997D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,6 +35,14 @@ Global
 		{CC17E9E7-4FDE-4647-9036-10A1EACC3D96}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FAE4DC67-DA8A-4A00-A2FD-D90BC0807A46}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FAE4DC67-DA8A-4A00-A2FD-D90BC0807A46}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C58CBF63-6D37-4195-B55D-DD898129BEF8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C58CBF63-6D37-4195-B55D-DD898129BEF8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C58CBF63-6D37-4195-B55D-DD898129BEF8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C58CBF63-6D37-4195-B55D-DD898129BEF8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CFA2F8C7-0C28-4C2D-B9E4-AAB0AE69997D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CFA2F8C7-0C28-4C2D-B9E4-AAB0AE69997D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CFA2F8C7-0C28-4C2D-B9E4-AAB0AE69997D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CFA2F8C7-0C28-4C2D-B9E4-AAB0AE69997D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,61 @@
+﻿@page "/"
+@attribute [StreamRendering]
+
+@inject LayoutSimulatorService SimulatorService
+
+<PageTitle>Layout Simulator</PageTitle>
+
+<h1>iamJohnnySam - Layout Simulator</h1>
+
+<div>
+
+</div>
+
+<div class="pod-dock">
+    @if (SimulatorService.Sim.Pods.Count == 0)
+    {
+        <p>No Pods available.</p>
+    }
+    else
+    {
+    <ul>
+        @foreach (var pod in SimulatorService.Sim.Pods.Values)
+        {
+            <li>
+                <PodComponent Pod=pod />
+            </li>
+        }
+    </ul>
+    }
+
+</div>
+
+<div class="log-section">
+    <div class="log-box" id="logBox">
+        @foreach (string log in SimulatorService.Logs)
+        {
+            <div>
+                @log
+            </div>
+        }
+    </div>
+</div>
+
+<div>
+    <div class="command-box">
+        <input type="text" @bind="inputCommand" />
+        <button class="send-btn" @onclick=sendCommand >Send</button>
+    </div>
+</div>
+
+Welcome to your new app.
+
+
+@code{
+    private string inputCommand { get; set; } = string.Empty;
+
+    void sendCommand()
+    {
+        SimulatorService.Sim.ExecuteCommands_NewThread(inputCommand, "commonCommSpec");
+    }
+}

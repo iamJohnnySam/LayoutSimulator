@@ -16,6 +16,14 @@ using System.Numerics;
 
 namespace LayoutModels
 {
+    public enum SimulatorState
+    {
+        ListeningCommands,
+        Stopped,
+        AutoRun,
+        Paused,
+    }
+
     public class Simulator : LayoutSimulator.LayoutSimulatorBase
     {
         public event EventHandler<LogMessage>? OnLogEvent;
@@ -42,7 +50,6 @@ namespace LayoutModels
                 simState = value;
                 OnLogEvent?.Invoke(this, new LogMessage($"Simulator State has changed to {value}."));
             } } 
-        // TODO: Simulator States
 
 
         private const string validChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -191,13 +198,11 @@ namespace LayoutModels
             return val.ToString();
         }
 
-
         public void AddCommSpec(string commSpecName, CommandStructure commStruct, ResponseStructure ackStruct, ResponseStructure respStruct, ICommSpec commSpec)
         {
             Translators[commSpecName] = new Translator(commStruct, ackStruct, respStruct, commSpec);
             Translators[commSpecName].OnLogEvent += OnSupportLogEvent;
         }
-
 
         public void ExecuteCommands_NewThread(string? command, string commSpecName)
         {

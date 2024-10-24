@@ -22,13 +22,29 @@ namespace LayoutModels
         Closing,
         Processing,
     }
+    public enum MapCodes
+    {
+        Empty = 0,
+        Available = 1,
+        Double = 2,
+        Cross = 3,
+    }
 
 
     public class Station : BaseStation, ITarget
     {
+        // EVENTS
         public event EventHandler<LogMessage>? OnLogEvent;
+        public event EventHandler<StationState>? OnStateChangeEvent;
+        public event EventHandler<int>? OnPickUp;
+        public event EventHandler<(int, Payload)>? OnDropOff;
+        public event EventHandler<string>? OnPodReaderPairEvent;
+        public event EventHandler<(string, int)>? OnPayloadReaderPairEvent;
 
+        // VARIABLES
         public Dictionary<int, Payload> slots = new();
+        private string? podID = null;
+        private bool statusMapped = false;
 
         private StationState StationState { get; set; }
         public StationState State { 
@@ -36,9 +52,9 @@ namespace LayoutModels
             private set {
                 StationState = value;
                 OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} State was updated to {value}"));
+                OnStateChangeEvent?.Invoke(this, value);
             } 
         }
-
         public string PayloadType { get; private set; }
         public string InputState { get; set; }
         public string OutputState { get; set; }
@@ -48,8 +64,6 @@ namespace LayoutModels
         public bool HasDoor { get; private set; }
         public float DoorTransitionTime { get; private set; }
         public bool PodDockable { get; private set; }
-        
-        private string? podID = null;
         public string PodID {
             get 
             { 
@@ -67,10 +81,7 @@ namespace LayoutModels
                 OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} Pod ID updated to {value}"));
             }
         }
-
         public bool Mappable { get; set; }
-
-        private bool statusMapped = false;
         public bool StatusMapped
         {
             get { return statusMapped; }
@@ -83,6 +94,7 @@ namespace LayoutModels
 
         public List<string> AcceptedCommands { get; set; }
 
+        // CONSTRUCTORS
         public Station(string stationID, string payloadType, string inputState, string outputState, int capacity, List<string> locations, bool processable, float processTime, bool hasDoor, float doorTransitionTime, bool podDockable, List<string> acceptedCommands)
         {
             StationID = stationID;
@@ -113,31 +125,30 @@ namespace LayoutModels
             OnBaseLogEvent += Station_OnBaseLogEvent;
         }
 
+        // EVENT HANDLING
         private void Station_OnBaseLogEvent(object? sender, LogMessage e)
         {
             OnLogEvent?.Invoke(this, e);
         }
 
+        // INTERNAL PROCESSES
         public bool CheckPayloadCompatible(Payload payload)
         {
             if (payload.PayloadType != PayloadType)
                 return false;
             return true;
         }
-
         public bool CheckSlotEmpty(int slot)
         {
             if (slots.ContainsKey(slot))
                 return false;
             return true;
         }
-
         private bool CheckAllSlotsEmpty()
         {
             if (slots.Count == 0) return true;
             return false;
         }
-
         public int GetNextEmptySlot()
         {
             for (int i = 0; i < Capacity; i++) {
@@ -150,7 +161,6 @@ namespace LayoutModels
             }
             return Capacity;
         }
-
         public int GetNextAvailableSlot()
         {
             for (int i = 0; i < Capacity; i++)
@@ -164,7 +174,6 @@ namespace LayoutModels
             }
             return 1;
         }
-
         private List<MapCodes> GetMap()
         {
             List<MapCodes> slotMap = new();
@@ -195,7 +204,8 @@ namespace LayoutModels
             return slotMap;
         }
 
-        public void Dock(Job job, Pod pod)
+        // COMMANDS
+        public string Dock(Job job, Pod pod)
         {
             if (State != StationState.UnDocked)
                 throw new ErrorResponse(ErrorCodes.PodAlreadyAvailable, $"Station {StationID} already has pod.");
@@ -203,7 +213,7 @@ namespace LayoutModels
             if (!CheckAllSlotsEmpty())
                 throw new ErrorResponse(ErrorCodes.SlotsNotEmpty, $"Station {StationID} slots are not empty.");
 
-
+            string response = PassThroughCommand(job);
             PodID = pod.PodID;
             slots = pod.slots;
             statusMapped = false;
@@ -212,13 +222,14 @@ namespace LayoutModels
             else
                 State = StationState.Open;
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Pod {pod.PodID} was docked to Station {StationID}."));
+            return response;
         }
-
         public Pod UnDock(Job job)
         {
             if (State != StationState.Closed)
                 throw new ErrorResponse(ErrorCodes.IncorrectState, $"Station {StationID} door is not closed.");
 
+            string response = PassThroughCommand(job);
             Pod pod = new(PodID, Capacity, PayloadType);
             pod.slots = slots;
             statusMapped= false;
@@ -226,13 +237,13 @@ namespace LayoutModels
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Pod {pod.PodID} was undocked from Station {StationID}."));
             return pod;
         }
-
-        public void Door(Job job, bool requestedStatus)
+        public string Door(Job job, bool requestedStatus)
         {
             // 0 -> Open Door
             // 1 -> Close Door
 
             Busy = true;
+            string response = PassThroughCommand(job);
             if (requestedStatus && State == StationState.Open)
             {
                 OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Station {StationID} door Closing."));
@@ -254,14 +265,15 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.IncorrectState, $"Station {StationID} door operation failed.");
             }
             Busy = false;
+            return response;
         }
-
-        public void Process(Job job)
+        public string Process(Job job)
         {
             if (CheckAllSlotsEmpty())
                 throw new ErrorResponse(ErrorCodes.SlotsEmpty, $"Station {StationID} does not have any payloads to process.");
 
             Busy = true;
+            string response = PassThroughCommand(job);
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Station {StationID} Process Started."));
             ProcessWait(ProcessTime);
 
@@ -274,8 +286,8 @@ namespace LayoutModels
 
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Station {StationID} Process Complete."));
             Busy = false;
+            return response;
         }
-
         public List<MapCodes> OpenDoorAndMap(Job job)
         {
             if (State == StationState.UnDocked)
@@ -285,6 +297,7 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.IncorrectState, $"Station {StationID} door was not closed.");
 
             Busy = true;
+            string response = PassThroughCommand(job);
             OnLogEvent?.Invoke(this, new LogMessage(job.TransactionID, $"Station {StationID} door Mapping."));
             State = StationState.Mapping;
             ProcessWait(DoorTransitionTime);
@@ -295,6 +308,7 @@ namespace LayoutModels
             return slotMap;
         }
 
+        // MANIPULATOR CONTROLS
         public void StartStationAccess()
         {
             if (Busy)
@@ -303,7 +317,6 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.NotAccessible, $"Station {StationID} door is not open.");
             State = StationState.BeingAccessed;
         }
-        
         public void StopStationAccess()
         {
             if (Busy)
@@ -312,20 +325,33 @@ namespace LayoutModels
                 throw new ErrorResponse(ErrorCodes.ProgramError, $"Station {StationID} being accessed by robot.");
             State = StationState.Open;
         }
-
         public string AcceptPayload(string transactionID, Payload payload, int slot)
         {
             slots.Add(slot, payload);
             OnLogEvent?.Invoke(this, new LogMessage(transactionID, $"Payload {payload.PayloadID} added to slot {slot} on Station {StationID}."));
+            OnDropOff?.Invoke(this, (slot, payload));
             return payload.PayloadID;
         }
-
         public Payload ReleasePayload(string transactionID, int slot)
         {
             Payload payload = slots[slot];
             slots.Remove(slot);
             OnLogEvent?.Invoke(this, new LogMessage (transactionID, $"Payload {payload.PayloadID} removed from slot {slot} on Station {StationID}."));
+            OnPickUp?.Invoke(this, slot);
             return payload;
+        }
+
+        // READER CONTROLS
+        public void PairReader(string readerID, int slot)
+        {
+            OnPayloadReaderPairEvent?.Invoke(this, (readerID, slot));
+            OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} was paired with payload reader {readerID} at slot {slot}."));
+        }
+
+        public void PairReader(string readerID)
+        {
+            OnPodReaderPairEvent?.Invoke(this, readerID);
+            OnLogEvent?.Invoke(this, new LogMessage($"Station {StationID} was paired with pod reader {readerID}"));
         }
     }
 }

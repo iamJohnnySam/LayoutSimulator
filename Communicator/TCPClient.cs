@@ -12,6 +12,10 @@ namespace Communicator
         public delegate void MessageReceivedEventHandler(string message);
         public event MessageReceivedEventHandler OnMessageReceived;
 
+        public event EventHandler<string>? OnMessageSend;
+        public event EventHandler<bool>? OnConnectChangeEvent;
+
+
         public event EventHandler<string>? OnLogEvent;
 
         private string _serverIp;
@@ -48,12 +52,14 @@ namespace Communicator
                         isConnected = true;
 
                         OnLogEvent?.Invoke(this, "Connected to server");
+                        OnConnectChangeEvent?.Invoke(this, true);
 
                         await ReceiveDataAsync();
                     }
                     catch (SocketException)
                     {
                         OnLogEvent?.Invoke(this, "Unable to connect to server. Retrying...");
+                        OnConnectChangeEvent?.Invoke(this, false);
                         await Task.Delay(5000); // Wait before retrying (non-blocking)
                     }
                 }
@@ -78,6 +84,7 @@ namespace Communicator
                     {
                         // No data received, this could mean the connection was closed by the server
                         OnLogEvent?.Invoke(this, "Connection closed by server.");
+                        OnConnectChangeEvent?.Invoke(this, false);
                         isConnected = false; // Mark as disconnected
                     }
                 }
@@ -87,6 +94,7 @@ namespace Communicator
                 if (isConnected)
                 {
                     OnLogEvent?.Invoke(this, $"Connection lost due to error: {ex.Message}. Waiting to reconnect...");
+                    OnConnectChangeEvent?.Invoke(this, false);
                     isConnected = false; // Mark as disconnected
                 }
             }
@@ -100,10 +108,12 @@ namespace Communicator
                 {
                     await _writer.WriteAsync(messageToSend); // Sends the message without any \r\n
                     await _writer.FlushAsync(); // Ensures the data is immediately sent
+                    OnMessageSend?.Invoke(this, messageToSend);
                 }
                 else
                 {
                     OnLogEvent?.Invoke(this, "Cannot send message. Either disconnected or message is empty.");
+                    OnConnectChangeEvent?.Invoke(this, false);
                 }
             }
             catch (IOException)
@@ -111,6 +121,7 @@ namespace Communicator
                 if (isConnected)
                 {
                     OnLogEvent?.Invoke(this, "Unable to send message. Connection lost.");
+                    OnConnectChangeEvent?.Invoke(this, false);
                     isConnected = false;
                 }
             }
@@ -136,6 +147,7 @@ namespace Communicator
                 if (isConnected)
                 {
                     OnLogEvent?.Invoke(this, "Unable to send message. Connection lost.");
+                    OnConnectChangeEvent?.Invoke(this, false);
                     isConnected = false; // Mark as disconnected
                 }
             }
