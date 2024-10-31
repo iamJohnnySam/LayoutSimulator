@@ -9,7 +9,6 @@ namespace LayoutSimulatorBlazor
     public class LayoutSimulatorService
     {
         public Simulator Sim { get; private set; }
-        public List<string> Logs { get; private set; } = new();
 
         TCPServer server = new("127.0.0.1", 8000);
 
@@ -22,9 +21,6 @@ namespace LayoutSimulatorBlazor
                 new ResponseStructure("<", ">", ",", 0, 2, -1, 1, 3, false, true),
                 new UniversalCommSpec());
 
-
-            Sim.OnLogEvent += Sim_OnLogEvent;
-
             server.Start();
             server.OnMessageReceived += Server_OnMessageReceived;
             Sim.OnResponseEvent += Sim_OnResponseEvent;
@@ -33,11 +29,6 @@ namespace LayoutSimulatorBlazor
         private void Sim_OnResponseEvent(object? sender, string e)
         {
             server.SendMessage(e);
-        }
-
-        private void Sim_OnLogEvent(object? sender, LogMessage e)
-        {
-            Logs.Add($"{DateTime.Now} {e.transactionID}: {e.message}");
         }
 
         void Server_OnMessageReceived(object? sender, string e)

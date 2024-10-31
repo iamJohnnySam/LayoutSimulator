@@ -1,5 +1,4 @@
 ﻿@page "/"
-@attribute [StreamRendering]
 
 @inject LayoutSimulatorService SimulatorService
 
@@ -11,35 +10,9 @@
 
 </div>
 
-<div class="pod-dock">
-    @if (SimulatorService.Sim.Pods.Count == 0)
-    {
-        <p>No Pods available.</p>
-    }
-    else
-    {
-    <ul>
-        @foreach (var pod in SimulatorService.Sim.Pods.Values)
-        {
-            <li>
-                <PodComponent Pod=pod />
-            </li>
-        }
-    </ul>
-    }
+<PodDockSection />
 
-</div>
-
-<div class="log-section">
-    <div class="log-box" id="logBox">
-        @foreach (string log in SimulatorService.Logs)
-        {
-            <div>
-                @log
-            </div>
-        }
-    </div>
-</div>
+<LogSection  />
 
 <div>
     <div class="command-box">
@@ -48,11 +21,12 @@
     </div>
 </div>
 
-Welcome to your new app.
+
 
 
 @code{
     private string inputCommand { get; set; } = string.Empty;
+
 
     void sendCommand()
     {

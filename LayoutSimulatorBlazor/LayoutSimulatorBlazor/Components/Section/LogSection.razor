@@ -1,0 +1,41 @@
+﻿@attribute [StreamRendering]
+
+@inject LayoutSimulatorService SimulatorService
+
+<div class="log-section">
+
+    <div class="log-box">
+        @foreach (string log in Logs)
+        {
+            <div>
+                @log
+            </div>
+        }
+    </div>
+
+</div>
+
+@code {
+    public List<string> Logs { get; private set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SimulatorService.Sim.OnLogEvent += OnLogEvent;
+
+        while (true)
+        {
+            await Task.Delay(500);
+        }
+    }
+
+    public async void OnLogEvent(object? sender, LogMessage e)
+    {
+        Logs.Add($"{DateTime.Now} {e.transactionID}: {e.message}");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        SimulatorService.Sim.OnLogEvent -= OnLogEvent;
+    }
+}

@@ -1,0 +1,27 @@
+﻿@inject LayoutSimulatorService SimulatorService;
+
+
+<div class="pod-dock">
+    @if (SimulatorService.Sim.Pods.Count == 0)
+    {
+        <p>No Pods available.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var pod in SimulatorService.Sim.Pods.Values)
+            {
+                <li>
+                    <PodComponent Pod=pod />
+                </li>
+            }
+        </ul>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        
+    }
+}
